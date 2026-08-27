@@ -1,4 +1,7 @@
 import re
+from pathlib import Path
+import csv
+
 
 # The expected pattern to match is "abcdef12345@domain_name.com"
 email_pattern = r"^[a-zA-Z0-9]+@[a-zA-Z]+\.com$" 
@@ -20,17 +23,45 @@ def is_valid_name(name:str) -> bool:
 
 # The expected pattern to match is "AB1234"
 patient_id_pattern = r"^[A-Z]{2}[0-9]{4}$"
-def is_valid_patient_id(patient_id:str) -> bool:
+def is_valid_patient_id_format(patient_id:str) -> bool:
     return bool(re.search(patient_id_pattern, patient_id))
+
+
+CSV_PATH = Path(__file__).resolve().parent.parent / "data"/ "diseases.csv"
+disease_codes:set = set()
+with open(CSV_PATH, "r") as file:
+    reader:csv.DictReader = csv.DictReader(file)
+    for row in reader:
+        disease_codes.add(row["code"])
+
+
+def is_valid_patient_id(patient_id:str, valid_disease_codes:set) -> bool:
+    if not is_valid_patient_id_format(patient_id):
+        return False
+    prefix:str = patient_id[:2]
+    return prefix in valid_disease_codes
+
+
+date_of_birth_pattern = r"^[0-9]{2}-[0-9]{2}-[0-9]{4}$"
+def is_valid_date_of_birth(date_of_birth:str) -> bool:
+   return bool(re.search(date_of_birth_pattern, date_of_birth)) 
 
 
 def main():
     print(is_valid_email("pratheekspoojari1304@gmail.com")) # True 
     print(is_valid_phone_number("1593574862")) # False
     print(is_valid_name("Pratheek")) # False
-    patient_id = ["TA0000", "CA85", "MA145", "aD1478", "AE145632", "Ae1485"]
+    patient_id = ["CA0000", "CA85", "MA1455", "aE1478", "PS4532", "Ae1485"]
+                  # True,   # False, #True,   # False,   # True,  # False
     for id in patient_id:
-        print(is_valid_patient_id(id))
+        print(f"{id} format: {is_valid_patient_id_format(id)}")
+        print(f"{id}: {is_valid_patient_id(id, disease_codes)}")
+
+    dob = ["1304-2005", "01-02-2000", "1-4-26", "13-051958", "14-05"]
+           # False      # True        # False    # False     # False
+    for d in dob:
+        print(f"{d}: {is_valid_date_of_birth(d)}")
+
 
 if __name__ == "__main__":
     main()

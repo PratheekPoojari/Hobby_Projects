@@ -1,0 +1,7 @@
+code,name,priority,keywords
+CA,Cancer,6,lump;unexplained weight loss;fatigue;persistent pain;skin changes;unusual bleeding;difficulty swallowing;persistent indigestion;changes in bowel habits
+TB,Tuberculosis,3,persistent cough;coughing blood;night sweats;chest pain;loss of appetite;prolonged fever;breathlessness;hoarseness
+MA,Malaria,2,chills;headache;nausea;muscle pain;vomiting;sweating;rapid heartbeat;abdominal pain
+DE,Dengue,1,high fever;severe headache;joint pain;rash;bleeding gums;pain behind eyes;low platelet count;weakness
+PS,Psoriasis,4,red patches;scaly skin;itching;dry skin;cracked skin;thickened nails;burning sensation;joint stiffness
+ME,Melanoma,5,mole changes;irregular borders;new skin growth;dark spot;itchy mole;asymmetrical mole;bleeding mole;raised bump
