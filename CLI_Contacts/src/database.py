@@ -65,8 +65,26 @@ cursor.execute(
     """
 )
 
-# Writes all the changes to the disk.
-hospital.commit()
+def get_all_patient_ids() -> list[str]:
 
-# Closes the file.
-hospital.close()
+    # "SELECTS" and stores all the patient_id from the users table.
+    cursor.execute("SELECT patient_id FROM users")
+    # Returns a list of tuples containing the patient_ids. Ex: [("CA0001",), ("TB2003",), etc....]
+    patient_id_raw:list[tuple] = cursor.fetchall()
+    # declare a empty list to avoid the 'possibly unbound' error.
+    patient_id_formatted:list[str] = []
+    
+    # row -> set to each value in the list of tuples, until it reaches the last tuple of the list.
+    for row in patient_id_raw:
+        # appends to the empty list all the patient_ids that exist, 
+        # as strings by accessing the very fisrt element of the tuple.
+        patient_id_formatted.append(row[0])
+    # returns the entire list. 
+    return patient_id_formatted
+
+def close_connection():
+
+    # Saves all the changes to the disk, as permanent change.
+    hospital.commit()
+    # Closes the connection, hence closing the file and no further operations are possible.
+    hospital.close()

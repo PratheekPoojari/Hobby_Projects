@@ -28,7 +28,7 @@ def is_valid_patient_id_format(patient_id:str) -> bool:
 
 
 CSV_PATH = Path(__file__).resolve().parent.parent / "data"/ "diseases.csv"
-disease_codes:set = set()
+disease_codes:set[str] = set()
 with open(CSV_PATH, "r") as file:
     reader:csv.DictReader = csv.DictReader(file)
     for row in reader:
@@ -46,7 +46,7 @@ date_of_birth_pattern = r"^[0-9]{2}-[0-9]{2}-[0-9]{4}$"
 def is_valid_date_of_birth(date_of_birth:str) -> bool:
    return bool(re.search(date_of_birth_pattern, date_of_birth)) 
 
-
+# Testing
 def main():
     print(is_valid_email("pratheekspoojari1304@gmail.com")) # True 
     print(is_valid_phone_number("1593574862")) # False
