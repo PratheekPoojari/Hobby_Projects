@@ -1,0 +1,8 @@
+id,symptoms,expected_code
+1,"The patient reported a persistent cough along with coughing blood and prolonged fever over the past two weeks. Night sweats and breathlessness were also present.",TB
+2,"Sudden onset of high fever accompanied by severe headache and joint pain. A rash appeared after two days along with bleeding gums.",DE
+3,"Skin around the arm showed red patches with visible scaly skin and constant itching. The area also had dry skin and some cracked skin near the elbow.",PS
+4,"A new mole changes in shape was noticed on the back with irregular borders and a dark spot in the center. The mole is also itchy mole to touch.",ME
+5,"Patient complains of chills and headache with nausea, followed by vomiting and heavy sweating. Rapid heartbeat was noted during examination.",MA
+6,"Occasional tiredness and mild trouble sleeping over the last week, nothing else significant to report.",0
+7,"Patient has a lump near the collarbone with unexplained weight loss, but has also developed persistent cough and night sweats over the same period.",AMBIGUOUS
