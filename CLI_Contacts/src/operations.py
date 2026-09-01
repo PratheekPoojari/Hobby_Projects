@@ -42,9 +42,16 @@ def prompt_email() -> str:
 
 def prompt_symptoms() -> str:
     while True:
-        symptoms:str = input("Enter your issues: ")
-        if symptoms != "" and len(symptoms.split()) <= 750:
+        symptoms: str = input("Enter your issues: ").strip()
+        word_count: int = len(symptoms.split())
+
+        if 1 <= word_count <= 750:
+            print(word_count)
             return symptoms
+        elif word_count == 0:
+            print("Please enter at least one symptom.")
+        else:
+            print(f"Input is too long ({word_count} words). Please keep it under 750 words.")
 
         
 
@@ -58,7 +65,6 @@ def main():
     #print(user3)
     user4 = prompt_symptoms()
     print(user4)
-    print(len(user4.split()))
 
 
 if __name__ == "__main__":
