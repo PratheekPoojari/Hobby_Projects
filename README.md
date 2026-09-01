@@ -14,3 +14,4 @@
 - `patient_id.py` completed after around a total of 5 hours or so spent to understand and build functions that do as intended, and fixing 
    previous minor bugs that were caught while going throug the file today.
 - `symptom_matcher.py` completed to take the user input symptoms and assess them and assign the disease code, to help generate the patient_id.
+- `Operations.py` under progress and few functions completed.
