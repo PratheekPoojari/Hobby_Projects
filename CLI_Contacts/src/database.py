@@ -1,5 +1,6 @@
 import sqlite3
 from pathlib import Path
+from classes import User, Relatives 
 
 # Path(__file__) -> returns a path object containing the path of the file it was called from. Ex: "src/database.py"
 # .resolve() -> a Path method that completes(from ~/ -> current file) the relative/incomplete path returned by Path(__file__)
@@ -65,6 +66,7 @@ cursor.execute(
     """
 )
 
+
 def get_all_patient_ids() -> list[str]:
 
     # "SELECTS" and stores all the patient_id from the users table.
@@ -81,6 +83,46 @@ def get_all_patient_ids() -> list[str]:
         patient_id_formatted.append(row[0])
     # returns the entire list. 
     return patient_id_formatted
+
+
+def is_duplicate(phone:str, email:str) -> bool:
+
+    # The "WHERE" clause is used to check for a specific value in the database internally, rather than selecting
+    # all rows and then running comparision checks, which is a waste of resources.
+    cursor.execute("SELECT phone_number, email FROM users WHERE phone_number = ? OR email = ?", (phone, email))
+    # cursor.fetchone() -> returns a single row(in this case only if mathed.)
+    users_match:tuple = cursor.fetchone()
+    # cursor.execute() can hold the value of only one query at a time. 
+    # Hence after each "SELECT" execution call, we need to store the values.
+    cursor.execute("SELECT phone_number, email FROM relatives WHERE phone_number = ? OR email = ?", (phone,email))
+    relatives_match:tuple = cursor.fetchone()
+    
+    
+    # if the users_match or the relatives_match contain any value(match found), then the if statement executes,
+    # as the presence of value is considered 'Truthy' in Python. Else it return 'False' as per the code.
+    if users_match or relatives_match:
+        return True
+    else:
+        return False
+
+
+def insert_user(user:User):
+    name:str = user.name
+    first:str
+    middle:str = ""
+    last:str
+    if len(name.split()) == 2:
+        first, last = name.split()
+    else: 
+        first, middle, last = name.split()
+
+    dob:str = user.date_of_birth.strftime("%d-%m-%Y")
+    
+    cursor.execute("""
+                   INSERT INTO users (patient_id, first_name, middle_name, last_name, date_of_birth, 
+                   symptoms, email, phone_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                   """, (user.patient_id, first, middle, last, dob, user.symptoms, user.email, user.number))
+
 
 def close_connection():
 
