@@ -1,10 +1,20 @@
+# To validate the prompted inputs from user.
 from patterns import *
+
+# To use as type annotations in the add_user and add_relative functions.
 from classes import User, Relatives
-from database import is_duplicate, insert_user
+
+# The actual query functions that perform the said action.
+from database import *
+# Used to take the user symptom as input for the function, and generate a matching disease_code
 from symptom_matcher import allocate_code
-from patient_id import generate_patient_id
+
+# Generates patient_id using the code and then checking internally for a number to assign(0000-9999)
+from patient_id import free_patient_id, generate_patient_id
 
 
+# Get user's name, and return a dict containing the key: value pairs of
+# first, middle(optional) and last with their values.
 def prompt_name() -> dict[str, str]:
     name_dict = {}
     while True:
@@ -27,6 +37,7 @@ def prompt_name() -> dict[str, str]:
             print("Invalid User Name. Please Enter a Valid Name.")
 
 
+# Get user's date of birth, returns it as a string.
 def prompt_date_of_birth() -> str:
     while True:
         print("""
@@ -41,6 +52,7 @@ def prompt_date_of_birth() -> str:
             print("Invalid Date of Birth. Please Enter a Valid Date of Birth.")
 
 
+# Get user's email, returns it as a string
 def prompt_email() -> str:
     while True:
         email:str = input("Enter email: ").strip()    
@@ -50,6 +62,7 @@ def prompt_email() -> str:
             print("Invalid Email. Please enter a Valid Email.")
 
 
+# Get user's symptoms, and returns it as a plain string after performing certain validations.
 def prompt_symptoms() -> str:
     while True:
         symptoms: str = input("Enter your issues: ").strip()
@@ -64,6 +77,7 @@ def prompt_symptoms() -> str:
             print(f"Input is too long ({word_count} words). Please keep it under 750 words.")
 
 
+# Get user's phone number, return it as string.
 def prompt_phone_number() -> str:
     while True:
         print("The number should be in the format: +91 1234567890, (+91 is mandatory.)")
@@ -74,7 +88,32 @@ def prompt_phone_number() -> str:
             print("Invalid Phone Number. Please enter a Valid Phone Number")
 
 
-def add_user():
+def prompt_patient_id() -> str:
+    while True:
+        print("The format for patient_id is: 'AB1234'.")
+        patient_id:str = input("Enter the patient_id of the user admitted: ")
+        if is_valid_patient_id(patient_id, disease_codes):
+            return patient_id
+        else:
+            print("Invalid 'patient_id'. Please Enter a valid patient_id")
+
+def complete_name(input_name:dict[str, str]) -> str:
+    name_dict = input_name.values()
+    name_list:list[str] = [val for val in name_dict]
+    if len(name_list) == 2:
+        full_name:str = name_list[0] + " " + name_list[1]
+        return full_name
+    else:
+        full_name:str = name_list[0] + " " + name_list[1] + " " + name_list[2]
+        return full_name
+    
+
+# Calls all the required 'propmt'_functions and stores their result in suitable variables.
+# Checks for duplicate values and if none are present, assigns a code and generates a patient_id.
+# The full user name if built using the first, middle(optional) and last, as per the user's input.
+# Then a constructor call is placed to the "User" class to instantiate an object for this specific input.
+# Later, the user_obj is fed into the insert_user(), to add it to database(hospital.db) and save on disk.
+def add_user() -> None:
 
     user_name:dict[str, str] = prompt_name()
     user_phone_number:str = prompt_phone_number()
@@ -89,15 +128,39 @@ def add_user():
         code:str = allocate_code(user_symptoms)
         user_patient_id:str = generate_patient_id(code)
 
-        name_dict = user_name.values()
-        name_list:list[str] = [val for val in name_dict]
-        if len(name_list) == 2:
-            full_name:str = name_list[0] + " " + name_list[1]
-        else:
-            full_name:str = name_list[0] + " " + name_list[1] + " " + name_list[2]
+        full_name:str = complete_name(user_name)
+        try:
+            user:User = User(user_patient_id, user_date_of_birth, user_symptoms, full_name, user_email, user_phone_number)
+            insert_user(user)
+        except ValueError as e:
+            free_patient_id(user_patient_id)
+            print(f"Failed to create user: {e}")
+            return None
 
-        user:User = User(user_patient_id, user_date_of_birth, user_symptoms, full_name, user_email, user_phone_number)
-        insert_user(user)
+
+def add_relative() -> None:
+    relative_patient_id:str = prompt_patient_id()
+    
+    if patient_id_exists(relative_patient_id):
+        relative_name:dict[str, str] = prompt_name()
+        relative_email:str = prompt_email()
+        relative_phone_number:str = prompt_phone_number()
+        if is_duplicate(relative_phone_number, relative_email):
+            print("The phone number/email has already been taken. Use a different one.")
+            return None
+        else:
+            full_name:str = complete_name(relative_name)
+            try:
+                relative:Relatives = Relatives(full_name, relative_email, relative_phone_number, relative_patient_id)
+                insert_relative(relative)
+            except ValueError as e:
+                print(f"Failed to create relative: {e}")
+                return None
+    else:
+        print(f"The patient_id: {relative_patient_id} doesn't exist.")
+        return None
+
+
 
 #def main():
     #user1 = prompt_name()
