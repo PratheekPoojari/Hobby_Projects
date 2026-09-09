@@ -2,6 +2,15 @@ import sqlite3
 from pathlib import Path
 from classes import User, Relatives 
 
+
+__all__:list[str] = [
+                     "insert_user", "insert_relative", "is_duplicate",
+                     "patient_id_exists", "search_user_by_patient_id", 
+                     "search_user_by_email", "search_user_by_phone", 
+                     "search_users_by_name", "search_relatives_by_email", 
+                     "search_relatives_by_phone", "search_relatives_by_name"
+                     ]
+
 # Path(__file__) -> returns a path object containing the path of the file it was called from. Ex: "src/database.py"
 # .resolve() -> a Path method that completes(from ~/ -> current file) the relative/incomplete path returned by Path(__file__)
 # .parent -> a property of Path that return the address of the parent directory of current file by stripping of one layer at a time.
@@ -215,7 +224,7 @@ def search_users_by_name(field:str, name:str) -> list[dict]| None:
         return None
 
 
-def get_users_by_patient_id(patient_id:str) -> dict[str, str]:
+def get_user_by_patient_id(patient_id:str) -> dict[str, str]:
     cursor.execute("SELECT patient_id, first_name, middle_name, last_name FROM users WHERE patient_id = ?", (patient_id,))
     matched_users:sqlite3.Row = cursor.fetchone()
     matched_users_dict:dict[str, str] = dict(matched_users)
@@ -227,7 +236,7 @@ def search_relatives_by_email(email:str) -> list[dict] | None:
     matched_email:sqlite3.Row = cursor.fetchone()
 
     if matched_email:
-        user_data:dict[str, str] = get_users_by_patient_id(matched_email["patient_id"])
+        user_data:dict[str, str] = get_user_by_patient_id(matched_email["patient_id"])
         matched_email_dict:dict[str, str] = dict(matched_email)
         email_dict:list[dict] = []
         email_dict.append(matched_email_dict)
@@ -237,12 +246,12 @@ def search_relatives_by_email(email:str) -> list[dict] | None:
         return None
 
 
-def search_relative_by_phone(phone:str) -> list[dict] | None:
+def search_relatives_by_phone(phone:str) -> list[dict] | None:
     cursor.execute("SELECT * FROM relatives WHERE phone_number = ?", (phone,))
     matched_number:sqlite3.Row = cursor.fetchone()
 
     if matched_number:
-        user_data:dict[str, str] = get_users_by_patient_id(matched_number["patient_id"])
+        user_data:dict[str, str] = get_user_by_patient_id(matched_number["patient_id"])
         matched_number_dict:dict[str, str] = dict(matched_number)
         number_dict:list[dict] = []
         number_dict.append(matched_number_dict)
@@ -252,17 +261,18 @@ def search_relative_by_phone(phone:str) -> list[dict] | None:
         return None
 
 
-def search_relative_by_name(field:str, name:str) -> list[dict] | None:
+def search_relatives_by_name(field:str, name:str) -> list[dict[str, dict]] | None:
     cursor.execute(f"SELECT * FROM relatives WHERE {field} = ?", (name,))
     matched_name:list[sqlite3.Row] = cursor.fetchall()
 
     if matched_name:
-        user_data:dict[str, str] = get_users_by_patient_id(matched_name["patient_id"])
-        matched_name_list:list[dict] = [dict(row) for row in matched_name]
-        name_list:list[dict] = []
-        name_list.append(matched_name_list)
-        name_list.append(user_data)
-        return name_list
+        results:list[dict[str, dict]] = []
+        for row in matched_name:
+            user_data:dict[str, str] = get_user_by_patient_id(row["patient_id"])
+            matched_name_dict:dict = dict(row)
+            combined_dict:dict[str, dict] = {"Relatives": matched_name_dict, "User": user_data}
+            results.append(combined_dict)
+        return results
     else:
         return None
 

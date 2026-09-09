@@ -3,6 +3,12 @@ from pathlib import Path
 import csv
 
 
+__all__:list[str] = [
+                     "is_valid_name", "is_valid_date_of_birth",
+                     "is_valid_email", "is_valid_phone_number",
+                     "is_valid_patient_id", "disease_codes"
+                     ]
+
 # The expected pattern to match is "abcdef12345@domain_name.com"
 email_pattern = r"^[a-zA-Z0-9]+@[a-zA-Z]+\.com$" 
 def is_valid_email(email:str) -> bool:

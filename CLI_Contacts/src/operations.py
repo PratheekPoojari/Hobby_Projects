@@ -6,11 +6,15 @@ from classes import User, Relatives
 
 # The actual query functions that perform the said action.
 from database import *
+
 # Used to take the user symptom as input for the function, and generate a matching disease_code
 from symptom_matcher import allocate_code
 
 # Generates patient_id using the code and then checking internally for a number to assign(0000-9999)
 from patient_id import free_patient_id, generate_patient_id
+
+# Type annotation.
+from types import FunctionType
 
 
 # Get user's name, and return a dict containing the key: value pairs of
@@ -27,7 +31,7 @@ def prompt_name() -> dict[str, str]:
             name_list:list[str] = name.split()
             if len(name_list) == 2:
                 first, last = name.split()
-                name_dict.update({"first_name": first, "last_name": last})
+                name_dict.update({"ambiguiousfirst_name": first, "last_name": last})
                 return name_dict
             elif len(name_list) == 3:
                 first, middle, last = name.split()
@@ -159,6 +163,115 @@ def add_relative() -> None:
     else:
         print(f"The patient_id: {relative_patient_id} doesn't exist.")
         return None
+
+
+users_search_fields:dict[str, FunctionType] = {
+    "patient_id":   search_user_by_patient_id,
+    "email":        search_user_by_email,
+    "phone_number": search_user_by_phone,
+    "first_name":   search_users_by_name,
+    "middle_name":  search_users_by_name,
+    "last_name":    search_users_by_name,
+}
+
+relatives_search_fields:dict[str, FunctionType] = {
+    "email":        search_relatives_by_email,
+    "phone_number": search_relatives_by_phone,
+    "first_name":   search_relatives_by_name,
+    "middle_name":  search_relatives_by_name,
+    "last_name":    search_relatives_by_name,
+}
+
+
+def search(table:str, field:str, value:str) -> dict[str, str] | list[dict] | None:
+    if table == "users":
+        dispatch_dict:dict[str, FunctionType] = users_search_fields
+    elif table == "relatives":
+        dispatch_dict:dict[str, FunctionType] = relatives_search_fields
+    else:
+        print("Invalid Table")
+        return None
+
+    query_function:FunctionType | None = dispatch_dict.get(field)
+    if query_function is None:
+        print(f"The entered field '{field}' is not present in {dispatch_dict}.")
+        return None
+    
+    name_fields:tuple = ("first_name", "middle_name", "last_name")
+    if field in name_fields:
+        result:dict[str, str] | list[dict] | None = query_function(field, value)
+    else:
+        result:dict[str, str] | list[dict] | None = query_function(value)
+    
+    if result is None:
+        print(f"No match for {value} in {field} found in the table {table}")
+
+    return result
+
+
+update_validate:dict[str, FunctionType] = {
+        "patient_id": is_valid_patient_id,
+        "first_name": is_valid_name,
+        "last_name": is_valid_name,
+        "date_of_birth" : is_valid_date_of_birth,
+        "email": is_valid_email,
+        "phone_number": is_valid_phone_number
+        }
+
+
+def update_assist(table:str, result:dict[str, str] | list[dict] | None) -> str | None:
+    if table == "users":
+        if type(result) == dict[str, str]:
+            return "Unambiguous"
+        if type(result) == list[dict] and len(result) == 1:
+            return "Unambiguous"
+        if type(result) == list[dict] and len(result) > 1:
+            return "Ambiguous"
+
+    if table == "relatives": 
+        if type(result) == list[dict] and len(result) == 2:
+            return "Unambiguous"
+        if type(result) == list[dict] and len(result) > 2:
+            return "Ambiguous"
+
+
+def update(table:str, search_field:str, search_value:str, changes:dict[str, str], row_identifier:int=0) -> tuple | dict[str, str] | list[dict] | None:
+    result:dict[str, str] | list[dict] | None = search(table, search_field, search_value)
+    
+    if result is None:
+        print(f"The value '{search_value}' couldn't be loacted in the field '{search_field}' of the {table} table.")
+        return ("Not Found", None)
+    
+    ambiguity:str | None = update_assist(table, result)
+    if ambiguity == "Ambiguous":
+        print(f"Multiple matches found for '{search_value}' in '{search_field}' of the {table} table.")
+        return ("ambiguous", result)
+    if ambiguity == "Unambiguous":
+        if table == "users":
+            if type(result) == dict[str, str]:
+                extracted_id:str = result["patient_id"]
+            if type(result) == list[dict]:
+                extracted_id:str = result[0]["patient_id"]
+        if table == "relatives":
+            if type(result) == list[dict]:
+                id_dict:str  = result[0]["relative_row_id"]
+
+    for key in changes:
+        validate_func:FunctionType = update_validate[key]
+        if validate_func(changes[key]):
+            ...
+
+
+    
+
+
+
+
+
+
+
+
+
 
 
 
