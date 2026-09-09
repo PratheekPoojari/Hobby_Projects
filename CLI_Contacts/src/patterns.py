@@ -6,7 +6,7 @@ import csv
 __all__:list[str] = [
                      "is_valid_name", "is_valid_date_of_birth",
                      "is_valid_email", "is_valid_phone_number",
-                     "is_valid_patient_id", "disease_codes"
+                     "is_valid_patient_id", "is_valid_middle_name" ,"disease_codes"
                      ]
 
 # The expected pattern to match is "abcdef12345@domain_name.com"
@@ -21,11 +21,19 @@ def is_valid_phone_number(phone:str) -> bool:
     return bool(re.search(phone_number_pattern, phone))
 
 
-# The expected pattern is: 1) fisrt middle last or 2) first last
+# The expected pattern is: 1) fisrt middle last or only first and last
 name_pattern = r"^[a-zA-Z]{3,12} ([a-zA-Z]{1,12} )?[a-zA-Z]{3,12}$"
 def is_valid_name(name:str) -> bool:
     return bool(re.search(name_pattern, name))
 
+
+# Single-word name check — used for middle_name, which is allowed to be empty
+# (unlike first/last, which is_valid_name already requires as a full "first last" pair).
+middle_name_pattern = r"^[a-zA-Z]{1,12}$"
+def is_valid_middle_name(name: str) -> bool:
+    if name == "":
+        return True
+    return bool(re.search(middle_name_pattern, name))
 
 # The expected pattern to match is "AB1234"
 patient_id_pattern = r"^[A-Z]{2}[0-9]{4}$"

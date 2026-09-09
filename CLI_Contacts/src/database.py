@@ -8,7 +8,8 @@ __all__:list[str] = [
                      "patient_id_exists", "search_user_by_patient_id", 
                      "search_user_by_email", "search_user_by_phone", 
                      "search_users_by_name", "search_relatives_by_email", 
-                     "search_relatives_by_phone", "search_relatives_by_name"
+                     "search_relatives_by_phone", "search_relatives_by_name",
+                     "update_query"
                      ]
 
 # Path(__file__) -> returns a path object containing the path of the file it was called from. Ex: "src/database.py"
@@ -99,18 +100,30 @@ def get_all_patient_ids() -> list[str]:
     return patient_id_formatted
 
 
-def is_duplicate(phone:str, email:str) -> bool:
+def is_duplicate(phone: str | None = None, email: str | None = None) -> bool:
+    if phone is None and email is None:
+        return False
+
+    conditions: list[str] = []
+    params: list[str] = []
+    if phone is not None:
+        conditions.append("phone_number = ?")
+        params.append(phone)
+    if email is not None:
+        conditions.append("email = ?")
+        params.append(email)
+    where_clause: str = " OR ".join(conditions)
 
     # The "WHERE" clause is used to check for a specific value in the database internally, rather than selecting
     # all rows and then running comparision checks, which is a waste of resources.
-    cursor.execute("SELECT phone_number, email FROM users WHERE phone_number = ? OR email = ?", (phone, email))
+    cursor.execute(f"SELECT phone_number, email FROM users WHERE {where_clause}", params)
     # cursor.fetchone() -> returns a single row(in this case only if mathed.)
-    users_match:sqlite3.Row = cursor.fetchone()
+    users_match: sqlite3.Row = cursor.fetchone()
+
     # cursor.execute() can hold the value of only one query at a time. 
     # Hence after each "SELECT" execution call, we need to store the values.
-    cursor.execute("SELECT phone_number, email FROM relatives WHERE phone_number = ? OR email = ?", (phone,email))
-    relatives_match:sqlite3.Row = cursor.fetchone()
-    
+    cursor.execute(f"SELECT phone_number, email FROM relatives WHERE {where_clause}", params)
+    relatives_match: sqlite3.Row = cursor.fetchone()    
     
     # if the users_match or the relatives_match contain any value(match found), then the if statement executes,
     # as the presence of value is considered 'Truthy' in Python. Else it return 'False' as per the code.
@@ -275,6 +288,13 @@ def search_relatives_by_name(field:str, name:str) -> list[dict[str, dict]] | Non
         return results
     else:
         return None
+
+
+def update_query(table: str, field: str, value: str, row_id: str) -> None:
+    if table == "users":
+        cursor.execute(f"UPDATE users SET {field} = ? WHERE patient_id = ?", (value, row_id))
+    elif table == "relatives":
+        cursor.execute(f"UPDATE relatives SET {field} = ? WHERE relative_row_id = ?", (value, row_id))
 
 
 def close_connection():

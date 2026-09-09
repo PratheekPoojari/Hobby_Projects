@@ -31,7 +31,7 @@ def prompt_name() -> dict[str, str]:
             name_list:list[str] = name.split()
             if len(name_list) == 2:
                 first, last = name.split()
-                name_dict.update({"ambiguiousfirst_name": first, "last_name": last})
+                name_dict.update({"first_name": first, "last_name": last})
                 return name_dict
             elif len(name_list) == 3:
                 first, middle, last = name.split()
@@ -210,8 +210,8 @@ def search(table:str, field:str, value:str) -> dict[str, str] | list[dict] | Non
 
 
 update_validate:dict[str, FunctionType] = {
-        "patient_id": is_valid_patient_id,
         "first_name": is_valid_name,
+        "middle_name": is_valid_middle_name,
         "last_name": is_valid_name,
         "date_of_birth" : is_valid_date_of_birth,
         "email": is_valid_email,
@@ -219,58 +219,96 @@ update_validate:dict[str, FunctionType] = {
         }
 
 
-def update_assist(table:str, result:dict[str, str] | list[dict] | None) -> str | None:
-    if table == "users":
-        if type(result) == dict[str, str]:
-            return "Unambiguous"
-        if type(result) == list[dict] and len(result) == 1:
-            return "Unambiguous"
-        if type(result) == list[dict] and len(result) > 1:
-            return "Ambiguous"
+name_fields: tuple = ("first_name", "middle_name", "last_name")
 
-    if table == "relatives": 
-        if type(result) == list[dict] and len(result) == 2:
-            return "Unambiguous"
-        if type(result) == list[dict] and len(result) > 2:
-            return "Ambiguous"
-
-
-def update(table:str, search_field:str, search_value:str, changes:dict[str, str], row_identifier:int=0) -> tuple | dict[str, str] | list[dict] | None:
-    result:dict[str, str] | list[dict] | None = search(table, search_field, search_value)
-    
+def update_assist(table: str, search_field: str, result: dict[str, str] | list[dict] | None) -> str | None:
     if result is None:
-        print(f"The value '{search_value}' couldn't be loacted in the field '{search_field}' of the {table} table.")
-        return ("Not Found", None)
-    
-    ambiguity:str | None = update_assist(table, result)
+        return None
+
+    if table == "users":
+        if search_field in name_fields:
+            if isinstance(result, list) and len(result) == 1:
+                return "Unambiguous"
+            if isinstance(result, list) and len(result) > 1:
+                return "Ambiguous"
+        else:
+            return "Unambiguous"
+
+    if table == "relatives":
+        if search_field in name_fields:
+            if isinstance(result, list) and len(result) == 1:
+                return "Unambiguous"
+            if isinstance(result, list) and len(result) > 1:
+                return "Ambiguous"
+        else:
+            return "Unambiguous"
+
+    return None
+
+
+def update(table: str, search_field: str, search_value: str, changes: dict[str, str], row_identifier: str | None = None) -> tuple:
+    result: dict[str, str] | list[dict] | None = search(table, search_field, search_value)
+
+    if result is None:
+        print(f"The value '{search_value}' couldn't be located in the field '{search_field}' of the {table} table.")
+        return ("not_found", None)
+
+    ambiguity: str | None = update_assist(table, search_field, result)
+
+    extracted_id: str = ""
+
     if ambiguity == "Ambiguous":
-        print(f"Multiple matches found for '{search_value}' in '{search_field}' of the {table} table.")
-        return ("ambiguous", result)
-    if ambiguity == "Unambiguous":
+        if row_identifier is None:
+            print(f"Multiple matches found for '{search_value}' in '{search_field}' of the {table} table.")
+            return ("ambiguous", result)
+        else:
+            # A prior call already returned the candidate list; caller picked one by relative_row_id.
+            chosen: dict | None = None
+            for pair in result:
+                if pair["Relatives"]["relative_row_id"] == row_identifier:
+                    chosen = pair
+                    break
+            if chosen is None:
+                print("Invalid selection.")
+                return ("not_found", None)
+            extracted_id = row_identifier
+
+    elif ambiguity == "Unambiguous":
         if table == "users":
-            if type(result) == dict[str, str]:
-                extracted_id:str = result["patient_id"]
-            if type(result) == list[dict]:
-                extracted_id:str = result[0]["patient_id"]
-        if table == "relatives":
-            if type(result) == list[dict]:
-                id_dict:str  = result[0]["relative_row_id"]
+            if search_field in name_fields:
+                extracted_id = result[0]["patient_id"]
+            else:
+                extracted_id = result["patient_id"]
+        elif table == "relatives":
+            if search_field in name_fields:
+                extracted_id = result[0]["Relatives"]["relative_row_id"]
+            else:
+                extracted_id = result[0]["relative_row_id"]
 
+    # Pass 1: validate every change before touching the database.
     for key in changes:
-        validate_func:FunctionType = update_validate[key]
-        if validate_func(changes[key]):
-            ...
+        validate_func: FunctionType | None = update_validate.get(key)
+        if validate_func is None:
+            print(f"'{key}' is not an updatable field.")
+            return ("failed", None)
+        if not validate_func(changes[key]):
+            print(f"Invalid value '{changes[key]}' for field '{key}'.")
+            return ("failed", None)
 
+    # Duplicate check, only for whichever of email/phone_number is actually being changed.
+    new_phone: str | None = changes.get("phone_number")
+    new_email: str | None = changes.get("email")
+    if new_phone or new_email:
+        if is_duplicate(phone=new_phone, email=new_email):
+            print("The phone number/email has already been taken. Use a different one.")
+            return ("failed", None)
 
-    
+    # Pass 2: apply every change now that all of them passed.
+    for key in changes:
+        update_query(table, key, changes[key], extracted_id)
 
-
-
-
-
-
-
-
+    print("Updated the changes successfully.")
+    return ("success", extracted_id)
 
 
 
