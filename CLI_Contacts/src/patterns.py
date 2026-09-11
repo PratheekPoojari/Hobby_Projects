@@ -6,7 +6,8 @@ import csv
 __all__:list[str] = [
                      "is_valid_name", "is_valid_date_of_birth",
                      "is_valid_email", "is_valid_phone_number",
-                     "is_valid_patient_id", "is_valid_middle_name" ,"disease_codes"
+                     "is_valid_patient_id", "is_valid_middle_name", 
+                     "is_valid_name_part", "disease_codes"
                      ]
 
 # The expected pattern to match is "abcdef12345@domain_name.com"
@@ -34,6 +35,14 @@ def is_valid_middle_name(name: str) -> bool:
     if name == "":
         return True
     return bool(re.search(middle_name_pattern, name))
+
+
+# Single word, mandatory (used for first_name/last_name when updating individually —
+# unlike is_valid_name, which expects the full "first [middle] last" string typed at signup).
+name_part_pattern = r"^[a-zA-Z]{3,12}$"
+def is_valid_name_part(name: str) -> bool:
+    return bool(re.search(name_part_pattern, name))
+
 
 # The expected pattern to match is "AB1234"
 patient_id_pattern = r"^[A-Z]{2}[0-9]{4}$"

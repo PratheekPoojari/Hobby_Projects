@@ -9,7 +9,7 @@ __all__:list[str] = [
                      "search_user_by_email", "search_user_by_phone", 
                      "search_users_by_name", "search_relatives_by_email", 
                      "search_relatives_by_phone", "search_relatives_by_name",
-                     "update_query"
+                     "update_query", "delete_query"
                      ]
 
 # Path(__file__) -> returns a path object containing the path of the file it was called from. Ex: "src/database.py"
@@ -295,6 +295,13 @@ def update_query(table: str, field: str, value: str, row_id: str) -> None:
         cursor.execute(f"UPDATE users SET {field} = ? WHERE patient_id = ?", (value, row_id))
     elif table == "relatives":
         cursor.execute(f"UPDATE relatives SET {field} = ? WHERE relative_row_id = ?", (value, row_id))
+
+
+def delete_query(table:str, row_id:str) -> None:
+    if table == "users":
+        cursor.execute("DELETE FROM users WHERE patient_id = ?", (row_id,))
+    elif table == "relatives":
+        cursor.execute("DELETE FROM relatives WHERE relative_row_id = ?", (row_id,))
 
 
 def close_connection():
