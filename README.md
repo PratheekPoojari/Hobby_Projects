@@ -14,5 +14,6 @@
 - `patient_id.py` completed after around a total of 5 hours or so spent to understand and build functions that do as intended, and fixing 
    previous minor bugs that were caught while going throug the file today.
 - `symptom_matcher.py` completed to take the user input symptoms and assess them and assign the disease code, to help generate the patient_id.
-- `Operations.py` almost completed with very little left to do with the `add_users()` function. `database.py` also updated with functions to check for
-- duplicate values, and insert a completely constructed user object into the database, safely using the `?` for place holders, rather than typing plain strings.
+- `operations.py` completed with 'update', 'delete' and 'view' functions implemented successfully.
+- `auth.py` completed with hashing, salting and prompting for username, password, creating the user account on verification, and login function done.
+- `tests/`- `test_operation.py` written to test the working of the functions in operations.py with various scenarios and edge cases.

@@ -6,7 +6,8 @@ __all__:list[str] = [
                      "is_valid_name", "is_valid_date_of_birth",
                      "is_valid_email", "is_valid_phone_number",
                      "is_valid_patient_id", "is_valid_middle_name", 
-                     "is_valid_name_part", "disease_codes"
+                     "is_valid_name_part", "disease_codes",
+                     "is_valid_username", "is_valid_password"
                      ]
 # The expected pattern to match is "abcdef12345@domain_name.com"
 email_pattern = r"^[a-zA-Z0-9]+@[a-zA-Z]+\.com$" 
@@ -57,7 +58,16 @@ def is_valid_patient_id(patient_id:str, valid_disease_codes:set) -> bool:
 
 date_of_birth_pattern = r"^[0-9]{2}-[0-9]{2}-[0-9]{4}$"
 def is_valid_date_of_birth(date_of_birth:str) -> bool:
-   return bool(re.search(date_of_birth_pattern, date_of_birth)) 
+   return bool(re.search(date_of_birth_pattern, date_of_birth))
+
+username_pattern = r"^\w{3,12}$"
+def is_valid_username(username:str) -> bool:
+    return bool(re.search(username_pattern, username))
+
+password_pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!-/:-@\[-`{-~])\S{9,18}$"
+def is_valid_password(password:str) -> bool:
+    return bool(re.search(password_pattern, password))
+
 # Testing
 def main():
     print(is_valid_email("pratheekspoojari1304@gmail.com")) # True 

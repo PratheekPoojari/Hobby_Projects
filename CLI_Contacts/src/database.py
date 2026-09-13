@@ -8,7 +8,8 @@ __all__:list[str] = [
                      "search_user_by_email", "search_user_by_phone", 
                      "search_users_by_name", "search_relatives_by_email", 
                      "search_relatives_by_phone", "search_relatives_by_name",
-                     "update_query", "delete_query"
+                     "update_query", "delete_query", "get_relatives_by_patient_id",
+                     "insert_account", "get_account", "link_patient_id"
                      ]
 
 # Path(__file__) -> returns a path object containing the path of the file it was called from. Ex: "src/database.py"
@@ -190,14 +191,14 @@ def search_user_by_phone(phone:str) -> dict[str, str] | None:
     else:
         return None
 
-def search_users_by_name(field:str, name:str) -> list[dict]| None:
+def search_users_by_name(field:str, name:str) -> list[dict[str, str]]| None:
     # Here the direct use of an f-string is permitted because the field is a stored value in dict-map,
     # and though input by user to the search() function, it is later on referenced to the dict map and
     # a "key" of type string is given as argument for this function.
     cursor.execute(f"SELECT * FROM users WHERE {field} = ?", (name,))
     matched_name:list[sqlite3.Row] = cursor.fetchall()
     if matched_name:
-        matched_name_dict:list[dict] = [dict(row) for row in matched_name]
+        matched_name_dict:list[dict[str, str]] = [dict(row) for row in matched_name]
         return matched_name_dict
     else:
         return None
@@ -207,6 +208,15 @@ def get_user_by_patient_id(patient_id:str) -> dict[str, str]:
     matched_users:sqlite3.Row = cursor.fetchone()
     matched_users_dict:dict[str, str] = dict(matched_users)
     return matched_users_dict
+
+def get_relatives_by_patient_id(patient_id:str) -> list[dict[str, str]] | None:
+    cursor.execute("SELECT * FROM relatives WHERE patient_id = ?", (patient_id,))
+    matched_relatives:list[sqlite3.Row] = cursor.fetchall()
+    if matched_relatives:
+        matched_relatives_dict:list[dict[str, str]] = [dict(row) for row in matched_relatives]
+        return matched_relatives_dict
+    else:
+        return None
 
 def search_relatives_by_email(email:str) -> list[dict] | None:
     cursor.execute("SELECT * FROM relatives WHERE email = ?", (email,))
@@ -259,6 +269,22 @@ def delete_query(table:str, row_id:str) -> None:
         cursor.execute("DELETE FROM users WHERE patient_id = ?", (row_id,))
     elif table == "relatives":
         cursor.execute("DELETE FROM relatives WHERE relative_row_id = ?", (row_id,))
+
+def insert_account(username:str, hashed_password:str, salt:str, role:str) -> None:
+    cursor.execute("""
+                   INSERT INTO accounts (username, hashed_password, salt, role)
+                   VALUES (?, ?, ?, ?)
+                   """, (username, hashed_password, salt, role))
+
+def get_account(username:str) -> dict | None:
+    cursor.execute("SELECT * FROM accounts WHERE username = ?", (username,))
+    account:sqlite3.Row = cursor.fetchone()
+    if account:
+        return dict(account)
+    return None
+
+def link_patient_id(username:str, patient_id:str) -> None:
+    cursor.execute("UPDATE accounts SET patient_id = ? WHERE username = ?", (patient_id, username))
 
 def close_connection():
     # Saves all the changes to the disk, as permanent change.

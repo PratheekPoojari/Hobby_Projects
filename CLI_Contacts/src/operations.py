@@ -216,6 +216,20 @@ def ambiguity_check(table: str, search_field: str, result: dict[str, str] | list
             return "Unambiguous"
     return None
 
+def resolve_selection(table:str, candidates:list[dict], row_identifier:str) -> dict | None:
+    if not isinstance(candidates, list):
+        print("Passed unexpected shape of candidates")
+        return None
+    if table == "users":
+        for ind, items in enumerate(candidates):
+            if row_identifier == items["patient_id"]:
+                return candidates[ind]
+    if table == "relatives":
+        for ind, items in enumerate(candidates):
+            if row_identifier == str(items["Relatives"]["relative_row_id"]):
+                return candidates[ind]["Relatives"]
+    return None
+
 def update(table: str, search_field: str, search_value: str, changes: dict[str, str], row_identifier: str | None = None) -> tuple:
     result: dict[str, str] | list[dict] | None = search(table, search_field, search_value)
     if result is None:
@@ -224,7 +238,7 @@ def update(table: str, search_field: str, search_value: str, changes: dict[str, 
     ambiguity: str | None = ambiguity_check(table, search_field, result)
     extracted_id: str = ""
     if ambiguity == "Ambiguous":
-        # update_assist only returns "Ambiguous" when result came from a name-field search,
+        # ambiguity_check only returns "Ambiguous" when result came from a name-field search,
         # which always returns list[dict] — but pyright can't see that from a string comparison,
         # so this isinstance check narrows the type (and guards against a real mismatch at runtime).
         if not isinstance(result, list):
@@ -234,18 +248,14 @@ def update(table: str, search_field: str, search_value: str, changes: dict[str, 
             print(f"Multiple matches found for '{search_value}' in '{search_field}' of the {table} table.")
             return ("ambiguous", result)
         else:
-            # A prior call already returned the candidate list; caller picked one by relative_row_id.
-            chosen: dict | None = None
-            for pair in result:
-                # relative_row_id comes back from sqlite3 as an int; row_identifier is a str.
-                # Cast before comparing or this silently never matches.
-                if str(pair["Relatives"]["relative_row_id"]) == row_identifier:
-                    chosen = pair
-                    break
+            chosen: dict | None = resolve_selection(table, result, row_identifier)
             if chosen is None:
                 print("Invalid selection.")
                 return ("not_found", None)
-            extracted_id = row_identifier
+            if table == "users":
+                extracted_id = chosen["patient_id"]
+            else:
+                extracted_id = str(chosen["relative_row_id"])
     elif ambiguity == "Unambiguous":
         if table == "users":
             if search_field in name_fields:
@@ -269,7 +279,9 @@ def update(table: str, search_field: str, search_value: str, changes: dict[str, 
                     print("Unexpected result shape.")
                     return ("failed", None)
                 extracted_id = str(result[0]["relative_row_id"])
-    # Pass 1: validate every change before touching the database.
+    else:
+        return ("failed", None)    
+    # Validate every change before touching the database.
     for key in changes:
         validate_func: FunctionType | None = update_validate.get(key)
         if validate_func is None:
@@ -285,7 +297,7 @@ def update(table: str, search_field: str, search_value: str, changes: dict[str, 
         if is_duplicate(phone=new_phone, email=new_email):
             print("The phone number/email has already been taken. Use a different one.")
             return ("failed", None)
-    # Pass 2: apply every change now that all of them passed.
+    # Apply every change now that all of them passed.
     for key in changes:
         update_query(table, key, changes[key], extracted_id)
     print("Updated the changes successfully.")
@@ -298,11 +310,8 @@ def delete(table:str, search_field:str, search_value:str, row_identifier:str|Non
         return ("not_found", None)
     ambiguity: str | None = ambiguity_check(table, search_field, result)
     extracted_id: str = ""
-    row_delete:dict[str, str] | list[dict] | None = result
+    chosen: dict | None = {}
     if ambiguity == "Ambiguous":
-        # update_assist only returns "Ambiguous" when result came from a name-field search,
-        # which always returns list[dict] — but pyright can't see that from a string comparison,
-        # so this isinstance check narrows the type (and guards against a real mismatch at runtime).
         if not isinstance(result, list):
             print("Unexpected result shape for an ambiguous match.")
             return ("failed", None)
@@ -310,19 +319,14 @@ def delete(table:str, search_field:str, search_value:str, row_identifier:str|Non
             print(f"Multiple matches found for '{search_value}' in '{search_field}' of the {table} table.")
             return ("ambiguous", result)
         else:
-            # A prior call already returned the candidate list; caller picked one by relative_row_id.
-            chosen: dict | None = None
-            for pair in result:
-                # relative_row_id comes back from sqlite3 as an int; row_identifier is a str.
-                # Cast before comparing or this silently never matches.
-                if str(pair["Relatives"]["relative_row_id"]) == row_identifier:
-                    chosen = pair
-                    break
+            chosen: dict | None = resolve_selection(table, result, row_identifier)
             if chosen is None:
                 print("Invalid selection.")
                 return ("not_found", None)
-            extracted_id = row_identifier
-            row_delete = chosen
+            if table == "users":
+                extracted_id = chosen["patient_id"]
+            else:
+                extracted_id = str(chosen["relative_row_id"])
     elif ambiguity == "Unambiguous":
         if table == "users":
             if search_field in name_fields:
@@ -330,90 +334,76 @@ def delete(table:str, search_field:str, search_value:str, row_identifier:str|Non
                     print("Unexpected result shape.")
                     return ("failed", None)
                 extracted_id = result[0]["patient_id"]
-                row_delete = result[0]
+                chosen = result[0]
             else:
                 if not isinstance(result, dict):
                     print("Unexpected result shape.")
                     return ("failed", None)
                 extracted_id = result["patient_id"]
-                row_delete = result
+                chosen = result
         elif table == "relatives":
             if search_field in name_fields:
                 if not isinstance(result, list):
                     print("Unexpected result shape.")
                     return ("failed", None)
                 extracted_id = str(result[0]["Relatives"]["relative_row_id"])
-                row_delete = result[0]["Relatives"]
+                chosen = result[0]["Relatives"]
             else:
                 if not isinstance(result, list):
                     print("Unexpected result shape.")
                     return ("failed", None)
                 extracted_id = str(result[0]["relative_row_id"])
-                row_delete = result[0]
+                chosen = result[0]
+    else:
+        return ("failed", None)
     delete_query(table, extracted_id)
-    print(f"Deleted the row: {row_delete} successfully.")
-    return ("success", {"table": table, "deleted": row_delete})
+    print(f"Deleted the row: {chosen} successfully.")
+    return ("success", {"table": table, "deleted": chosen})
 
-def main():
-    from database import close_connection
-    # ---- Setup: 3 users, with 1, 2, and 3 relatives respectively ----
-    # User 1 — 1 relative
-    patient_id_1 = generate_patient_id("CA")
-    user_1 = User(patient_id_1, "01-01-1990", "test symptoms for user one",
-                  "Alice One", "aliceone1@test.com", "+91 9000000001")
-    insert_user(user_1)
-    relative_1a = Relatives("Bob One", "bobone1@test.com", "+91 9000000002", patient_id_1)
-    insert_relative(relative_1a)
-    # User 2 — 2 relatives
-    patient_id_2 = generate_patient_id("TB")
-    user_2 = User(patient_id_2, "02-02-1991", "test symptoms for user two",
-                  "Alice Two", "alicetwo1@test.com", "+91 9000000003")
-    insert_user(user_2)
-    relative_2a = Relatives("Bob Two", "bobtwoa1@test.com", "+91 9000000004", patient_id_2)
-    relative_2b = Relatives("Carl Two", "bobtwob1@test.com", "+91 9000000005", patient_id_2)
-    insert_relative(relative_2a)
-    insert_relative(relative_2b)
-    # User 3 — 3 relatives
-    patient_id_3 = generate_patient_id("MA")
-    user_3 = User(patient_id_3, "03-03-1992", "test symptoms for user three",
-                  "Alice Three", "alicethree1@test.com", "+91 9000000006")
-    insert_user(user_3)
-    relative_3a = Relatives("Bob Three", "bobthreea1@test.com", "+91 9000000007", patient_id_3)
-    relative_3b = Relatives("Carl Three", "bobthreeb1@test.com", "+91 9000000008", patient_id_3)
-    relative_3c = Relatives("Dave Three", "bobthreec1@test.com", "+91 9000000009", patient_id_3)
-    insert_relative(relative_3a)
-    insert_relative(relative_3b)
-    insert_relative(relative_3c)
-    print("\n--- Setup complete: 3 users created with 1, 2, and 3 relatives ---\n")
-    # ---- Action 1: delete user 1 entirely — relies on FK cascade to remove relative_1a ----
-    status, data = delete("users", "patient_id", patient_id_1)
-    print(f"\nDelete user 1 status: {status}")
-    assert status == "success", "Expected user 1 deletion to succeed."
-    cascade_check = search_relatives_by_email("bobone1@test.com")
-    assert cascade_check is None, "FAIL: relative_1a still exists — cascade didn't fire."
-    print("PASS: user 1 and their relative were both removed (cascade confirmed).")
-    # ---- Action 2: delete the first relative of user 2 (relative_2a) ----
-    status, data = delete("relatives", "email", "bobtwoa1@test.com")
-    print(f"\nDelete relative_2a status: {status}")
-    assert status == "success", "Expected relative_2a deletion to succeed."
-    assert search_relatives_by_email("bobtwoa1@test.com") is None, "FAIL: relative_2a still exists."
-    assert search_relatives_by_email("bobtwob1@test.com") is not None, "FAIL: relative_2b was wrongly removed."
-    assert search_user_by_patient_id(patient_id_2) is not None, "FAIL: user 2 was wrongly removed."
-    print("PASS: relative_2a removed; relative_2b and user 2 untouched.")
-    # ---- Action 3: delete the last two relatives of user 3 (relative_3b, relative_3c) ----
-    status, data = delete("relatives", "email", "bobthreeb1@test.com")
-    print(f"\nDelete relative_3b status: {status}")
-    assert status == "success", "Expected relative_3b deletion to succeed."
-    status, data = delete("relatives", "email", "bobthreec1@test.com")
-    print(f"Delete relative_3c status: {status}")
-    assert status == "success", "Expected relative_3c deletion to succeed."
-    assert search_relatives_by_email("bobthreeb1@test.com") is None, "FAIL: relative_3b still exists."
-    assert search_relatives_by_email("bobthreec1@test.com") is None, "FAIL: relative_3c still exists."
-    assert search_relatives_by_email("bobthreea1@test.com") is not None, "FAIL: relative_3a was wrongly removed."
-    assert search_user_by_patient_id(patient_id_3) is not None, "FAIL: user 3 was wrongly removed."
-    print("PASS: relative_3b and relative_3c removed; relative_3a and user 3 untouched.")
-    print("\nAll delete() test cases passed.\n")
-    close_connection()
+def display_bundle(user: dict, relatives: list[dict] | None) -> None:
+    full_name = f"{user['first_name']} {user.get('middle_name', '')} {user['last_name']}".replace("  ", " ").strip()
+    print(f"\nUser: {full_name} (patient_id: {user['patient_id']})")
+    print(f"  DOB: {user.get('date_of_birth', '-')}")
+    print(f"  Symptoms: {user.get('symptoms', '-')}")
+    print(f"  Email: {user.get('email', '-')}")
+    print(f"  Phone: {user.get('phone_number', '-')}")
+    if relatives:
+        print("  Relatives:")
+        for rel in relatives:
+            rel_name = f"{rel['first_name']} {rel.get('middle_name', '')} {rel['last_name']}".replace("  ", " ").strip()
+            print(f"    - {rel_name} (row_id: {rel['relative_row_id']}, email: {rel.get('email', '-')}, phone: {rel.get('phone_number', '-')})")
+    else:
+        print(f"  No Relatives found for {full_name}.")
 
-if __name__ == "__main__":
-    main()
+
+def view(table: str, search_field: str, search_value: str) -> None:
+    result: dict[str, str] | list[dict] | None = search(table, search_field, search_value)
+    if result is None:
+        print(f"The value '{search_value}' couldn't be located in the field '{search_field}' of the {table} table.")
+        return None
+
+    if table == "users":
+        # Normalize to a list regardless of whether search() returned a single dict
+        # (non-name field) or a list of dicts (name-field, possibly multiple matches).
+        user_rows: list[dict] = [result] if isinstance(result, dict) else result
+        for user in user_rows:
+            relatives: list[dict[str, str]] | None = get_relatives_by_patient_id(user["patient_id"])
+            display_bundle(user, relatives)
+
+    elif table == "relatives":
+        if search_field in name_fields:
+            # search_relatives_by_name() -> list of {"Relatives": {...}, "User": {...}}
+            if not isinstance(result, list):
+                print("Unexpected result shape.")
+                return None
+            for pair in result:
+                display_bundle(pair["User"], [pair["Relatives"]])
+        else:
+            # search_relatives_by_email/phone() -> [relative_dict, user_dict], single match only
+            if not isinstance(result, list) or len(result) != 2:
+                print("Unexpected result shape.")
+                return None
+            relative, user = result[0], result[1]
+            display_bundle(user, [relative])
+
+    return None
