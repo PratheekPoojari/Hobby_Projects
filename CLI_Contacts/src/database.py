@@ -203,11 +203,13 @@ def search_users_by_name(field:str, name:str) -> list[dict[str, str]]| None:
     else:
         return None
 
-def get_user_by_patient_id(patient_id:str) -> dict[str, str]:
+def get_user_by_patient_id(patient_id:str) -> dict[str, str] | None:
     cursor.execute("SELECT patient_id, first_name, middle_name, last_name FROM users WHERE patient_id = ?", (patient_id,))
     matched_users:sqlite3.Row = cursor.fetchone()
-    matched_users_dict:dict[str, str] = dict(matched_users)
-    return matched_users_dict
+    if matched_users:
+        matched_users_dict:dict[str, str] = dict(matched_users)
+        return matched_users_dict
+    return None
 
 def get_relatives_by_patient_id(patient_id:str) -> list[dict[str, str]] | None:
     cursor.execute("SELECT * FROM relatives WHERE patient_id = ?", (patient_id,))
@@ -222,11 +224,12 @@ def search_relatives_by_email(email:str) -> list[dict] | None:
     cursor.execute("SELECT * FROM relatives WHERE email = ?", (email,))
     matched_email:sqlite3.Row = cursor.fetchone()
     if matched_email:
-        user_data:dict[str, str] = get_user_by_patient_id(matched_email["patient_id"])
+        user_data:dict[str, str] | None = get_user_by_patient_id(matched_email["patient_id"])
         matched_email_dict:dict[str, str] = dict(matched_email)
         email_dict:list[dict] = []
         email_dict.append(matched_email_dict)
-        email_dict.append(user_data)
+        if user_data is not None:
+            email_dict.append(user_data)
         return email_dict
     else:
         return None
@@ -235,11 +238,12 @@ def search_relatives_by_phone(phone:str) -> list[dict] | None:
     cursor.execute("SELECT * FROM relatives WHERE phone_number = ?", (phone,))
     matched_number:sqlite3.Row = cursor.fetchone()
     if matched_number:
-        user_data:dict[str, str] = get_user_by_patient_id(matched_number["patient_id"])
+        user_data:dict[str, str] | None = get_user_by_patient_id(matched_number["patient_id"])
         matched_number_dict:dict[str, str] = dict(matched_number)
         number_dict:list[dict] = []
         number_dict.append(matched_number_dict)
-        number_dict.append(user_data)
+        if user_data is not None:
+            number_dict.append(user_data)
         return number_dict
     else:
         return None
@@ -250,10 +254,11 @@ def search_relatives_by_name(field:str, name:str) -> list[dict[str, dict]] | Non
     if matched_name:
         results:list[dict[str, dict]] = []
         for row in matched_name:
-            user_data:dict[str, str] = get_user_by_patient_id(row["patient_id"])
+            user_data:dict[str, str] | None = get_user_by_patient_id(row["patient_id"])
             matched_name_dict:dict = dict(row)
-            combined_dict:dict[str, dict] = {"Relatives": matched_name_dict, "User": user_data}
-            results.append(combined_dict)
+            if user_data is not None:
+                combined_dict:dict[str, dict] = {"Relatives": matched_name_dict, "User": user_data}
+                results.append(combined_dict)
         return results
     else:
         return None
