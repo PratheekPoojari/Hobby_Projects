@@ -59,13 +59,3 @@ def allocate_code(symptoms:str) -> str:
     winner:str = max(matched_priorities, key=lambda code: matched_priorities[code])
     return winner
 
-# Testing block: only runs when this file is executed directly (python3 symptom_matcher.py),
-# not when it's imported elsewhere (e.g. from symptom_matcher import allocate_code in main.py).
-if __name__ == "__main__":
-    SYMPTOMS_PATH = Path(__file__).resolve().parent.parent / "data" / "symptoms.csv"
-    with open(SYMPTOMS_PATH, "r") as file:
-        reader:csv.DictReader = csv.DictReader(file)
-        for row in reader:
-            symptoms_text:str = row["symptoms"]
-            alloted_code = allocate_code(symptoms_text)
-            print(alloted_code)

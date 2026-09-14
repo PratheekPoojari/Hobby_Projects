@@ -16,4 +16,6 @@
 - `symptom_matcher.py` completed to take the user input symptoms and assess them and assign the disease code, to help generate the patient_id.
 - `operations.py` completed with 'update', 'delete' and 'view' functions implemented successfully.
 - `auth.py` completed with hashing, salting and prompting for username, password, creating the user account on verification, and login function done.
-- `tests/`- test files written and verified for `auth.py`, `classes.py`, `database.py` and `operations.py`.
+- `tests/`- test files written and verified for all the exisiting modules, `auth.py`, `calsses.py`, `database.py`, `operaations.py`, `patient_id.py`,
+            `patterns.py` and `symptom_matcher.py`.
+- `exports.py` - working on it's design and the modules that actually need to be used in it.

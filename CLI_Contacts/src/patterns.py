@@ -68,21 +68,3 @@ password_pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!-/:-@\[-`{-~])\S{9
 def is_valid_password(password:str) -> bool:
     return bool(re.search(password_pattern, password))
 
-# Testing
-def main():
-    print(is_valid_email("pratheekspoojari1304@gmail.com")) # True 
-    print(is_valid_phone_number("1593574862")) # False
-    print(is_valid_name("Pratheek")) # False
-    patient_id = ["CA0000", "CA85", "MA1455", "aE1478", "PS4532", "Ae1485"]
-                  # True,   # False, #True,   # False,   # True,  # False
-    for id in patient_id:
-        print(f"{id} format: {is_valid_patient_id_format(id)}")
-        print(f"{id}: {is_valid_patient_id(id, disease_codes)}")
-
-    dob = ["1304-2005", "01-02-2000", "1-4-26", "13-051958", "14-05"]
-           # False      # True        # False    # False     # False
-    for d in dob:
-        print(f"{d}: {is_valid_date_of_birth(d)}")
-
-if __name__ == "__main__":
-    main()
