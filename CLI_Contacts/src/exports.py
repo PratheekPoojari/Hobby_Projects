@@ -67,27 +67,43 @@ def prompt_export_path() -> Path | None:
             return None
             
 
-def export_patient_txt(record:dict, path:str | Path | None = None) -> str:
-
-    timestamp:datetime = datetime.now()
-    file_time_stamp:str = timestamp.strftime("%d-%m-%Y_%H-%M-%S")
-    patient_id:str = record["user"]["patient_id"]
-    filename:str = f"{patient_id}_{file_time_stamp}.txt"
+def resolve_export_path(filename:str, path:str | Path | None = None) -> Path:
 
     export_to_path:Path = Path(__file__).resolve().parent.parent / "exports" / filename   
     if path:
         if Path(path).is_absolute():
             export_to_path = Path(path) / filename
-    
+    export_to_path.parent.mkdir(parents=True, exist_ok=True)
+    return export_to_path
+
+
+def format_time(select:str) -> str | None:
+    if select == "file_name":
+        timestamp:datetime = datetime.now()
+        file_time_stamp:str = timestamp.strftime("%d-%m-%Y_%H-%M-%S")
+        return file_time_stamp
+    elif select == "in_file":
+        timestamp:datetime = datetime.now()
+        formatted_timestamp:str = timestamp.strftime("%d-%m-%Y %H:%M:%S")
+        return formatted_timestamp
+    else:
+        return None
+
+
+def export_patient_txt(record:dict, path:str | Path | None = None) -> str:
+
     user_record:dict = record["user"]
     relatives_record:list[dict] = record["relatives"]
 
-    export_to_path.parent.mkdir(parents=True, exist_ok=True)
+    txt_time_stamp:str | None = format_time("file_name")
+    patient_id:str = user_record["patient_id"]
+    filename:str = f"{patient_id}_{txt_time_stamp}.txt"
 
-    with open(export_to_path, "w", encoding="utf-8") as file:
+    write_to_path:Path = resolve_export_path(filename, path)
 
-        formatted_timestamp:str = timestamp.strftime("%d-%m-%Y %H:%M:%S")
-        file.write(f"Export Time: {formatted_timestamp}\n")
+    with open(write_to_path, "w", encoding="utf-8") as file:
+
+        file.write(f"Export Time: {format_time("in_file")}\n")
         file.write("----------User Data----------\n")
         for key, val in user_record.items():
             file.write(f"{key}: {val}\n")
@@ -101,7 +117,66 @@ def export_patient_txt(record:dict, path:str | Path | None = None) -> str:
         else:
             file.write("This User doesn't yet have any Relatives attached.")
 
-    return str(export_to_path)
+    return str(write_to_path)
+
 
 def export_patient_csv(record:dict, path:str | None = None) -> str:
+
+    user_record:dict = record["user"]
+    relatives_record:list[dict] = record["relatives"]
+
+    csv_time_stamp:str | None = format_time("file_name")
+    patient_id:str = user_record["patient_id"]
+    filename:str = f"{patient_id}_{csv_time_stamp}.csv"
+
+    write_to_path:Path = resolve_export_path(filename, path)
+
+    relatives_str:str = "; ".join(
+        f"{rel['first_name']} {rel.get('middle_name') or ''} {rel['last_name']}({rel['email']}, {rel['phone_number']})"
+        for rel in relatives_record)                                                                                                
+    row:dict[str, str] = {**user_record, "relatives": relatives_str}
+    fieldnames:list[str] = list(row.keys())
+
+    with open(write_to_path, "w", newline="", encoding="utf-8") as file:
+        print("Note: each patient's relatives are stored in a single ';'-separated field.")
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerow(row)
+
+    return str(write_to_path)
+
+
+def export_patient_docx(record:dict, path:str | None = None) -> str:
+    user_record:dict = record["user"]
+    relatives_record:list[dict] = record["relatives"]
+
+    docx_time_stamp:str | None = format_time("file_name")
+    patient_id:str = user_record["patient_id"]
+    filename:str = f"{patient_id}_{docx_time_stamp}.docx"
+
+    write_to_path:Path = resolve_export_path(filename, path)
+
+    doc = Document()
+    doc.add_heading("Patient Record", level=1)
+    doc.add_paragraph(f"Export Time: {format_time("in_file")}")
+    
+    doc.add_heading("Patient Details", level=2)
+    for key, val in user_record.items():
+        doc.add_paragraph(f"{key}: {val}\n")
+
+    doc.add_heading("Relatives Details", level=2)
+    if relatives_record:
+        for i, relative in enumerate(relatives_record):
+            doc.add_paragraph(f"Relative{str(i)}\n")
+            for key, val in relative.items():
+                doc.add_paragraph(f"{key}: {val}\n")
+    else:
+        doc.add_paragraph("This User doesn't yet have any Relatives attached.")
+
+    doc.save(str(write_to_path))
+
+    return str(write_to_path)
+
+
+def export_patient_pdf(record:dict, path:str | Path | None = None) -> str:
     ...
