@@ -2,7 +2,13 @@ from patterns import *
 # Represents calendar dates and clock times together(year, month, day, hour, minute, second....)
 from datetime import date, datetime
 # date.today() -> gives today's date.
-session_date = date.today()
+session_date:date = date.today()
+
+def calc_age(current:date, birth:date) -> int: 
+    year:int = current.year - birth.year
+    if (current.month, current.day) < (birth.month, birth.day):
+        return year - 1
+    return year
 
 class BaseClass:
     def __init__(self, name:str, email:str, number:str) -> None:
@@ -72,10 +78,8 @@ class User(BaseClass):
             raise ValueError(f"Invalid Date of Birth: {date_of_birth}")
     @property
     def age(self) -> int:
-        year = session_date.year - self.date_of_birth.year
-        if (session_date.month, session_date.day) < (self.date_of_birth.month, self.date_of_birth.day):
-            return year - 1
-        return year
+        return calc_age(session_date, self._date_of_birth)
+
     @property
     def symptoms(self) -> str:
         return self._symptoms

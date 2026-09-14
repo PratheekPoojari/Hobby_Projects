@@ -11,6 +11,17 @@ from patient_id import free_patient_id, generate_patient_id
 # Type annotation.
 from types import FunctionType
 
+__all__ = [
+    "add_user",
+    "add_relative",
+    "search",
+    "update",
+    "delete",
+    "view",
+    "get_relatives_by_patient_id",  # re-exported from database.py, needed by exports.py
+    "ambiguity_check",              # internal helper, now also needed by exports.py
+    "resolve_selection"
+    ]
 # Get user's name, and return a dict containing the key: value pairs of
 # first, middle(optional) and last with their values.
 def prompt_name() -> dict[str, str]:
