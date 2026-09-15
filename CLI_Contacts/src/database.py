@@ -9,7 +9,7 @@ __all__:list[str] = [
                      "search_users_by_name", "search_relatives_by_email", 
                      "search_relatives_by_phone", "search_relatives_by_name",
                      "update_query", "delete_query", "get_relatives_by_patient_id",
-                     "insert_account", "get_account", "link_patient_id"
+                     "insert_account", "get_account", "link_patient_id", "get_all_users"
                      ]
 
 # Path(__file__) -> returns a path object containing the path of the file it was called from. Ex: "src/database.py"
@@ -290,6 +290,11 @@ def get_account(username:str) -> dict | None:
 
 def link_patient_id(username:str, patient_id:str) -> None:
     cursor.execute("UPDATE accounts SET patient_id = ? WHERE username = ?", (patient_id, username))
+
+def get_all_users() -> list[dict]:
+    cursor.execute("SELECT patient_id, first_name, middle_name, last_name FROM users")
+    return [dict(row) for row in cursor.fetchall()]
+
 
 def close_connection():
     # Saves all the changes to the disk, as permanent change.

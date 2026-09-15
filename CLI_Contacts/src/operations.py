@@ -20,7 +20,8 @@ __all__ = [
     "view",
     "get_relatives_by_patient_id",  # re-exported from database.py, needed by exports.py
     "ambiguity_check",              # internal helper, now also needed by exports.py
-    "resolve_selection"
+    "resolve_selection",
+    "get_all_users"
     ]
 # Get user's name, and return a dict containing the key: value pairs of
 # first, middle(optional) and last with their values.
