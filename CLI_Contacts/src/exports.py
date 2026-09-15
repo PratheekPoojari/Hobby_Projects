@@ -92,24 +92,22 @@ def format_time(select:str) -> str | None:
 
 def export_patient_txt(record:dict, path:str | Path | None = None) -> str:
 
-    user_record:dict = record["user"]
-    relatives_record:list[dict] = record["relatives"]
  
-    patient_id:str = user_record["patient_id"]
-    filename:str = f"{patient_id}_{format_time("file_name")}.txt"
+    patient_id:str = record['user']["patient_id"]
+    filename:str = f"{patient_id}_{format_time('file_name')}.txt"
 
     write_to_path:Path = resolve_export_path(filename, path)
 
     with open(write_to_path, "w", encoding="utf-8") as file:
 
-        file.write(f"Export Time: {format_time("in_file")}\n")
+        file.write(f"Export Time: {format_time('in_file')}\n")
         file.write("----------User Data----------\n")
-        for key, val in user_record.items():
+        for key, val in record['user'].items():
             file.write(f"{key}: {val}\n")
 
         file.write("----------Relatives Data----------\n")
-        if relatives_record:
-            for i, relative in enumerate(relatives_record):
+        if record['relatives']:
+            for i, relative in enumerate(record['relatives']):
                 file.write(f"Relative{str(i)}\n")
                 for key, val in relative.items():
                     file.write(f"{key}: {val}\n")
@@ -121,18 +119,15 @@ def export_patient_txt(record:dict, path:str | Path | None = None) -> str:
 
 def export_patient_csv(record:dict, path:str | None = None) -> str:
 
-    user_record:dict = record["user"]
-    relatives_record:list[dict] = record["relatives"]
-
-    patient_id:str = user_record["patient_id"]
-    filename:str = f"{patient_id}_{ format_time("file_name")}.csv"
+    patient_id:str = record['user']["patient_id"]
+    filename:str = f"{patient_id}_{ format_time('file_name')}.csv"
 
     write_to_path:Path = resolve_export_path(filename, path)
 
     relatives_str:str = "; ".join(
         f"{rel['first_name']} {rel.get('middle_name') or ''} {rel['last_name']}({rel['email']}, {rel['phone_number']})"
-        for rel in relatives_record)                                                                                                
-    row:dict[str, str] = {**user_record, "relatives": relatives_str}
+        for rel in record['relatives'])                                                                                                
+    row:dict[str, str] = {**record['user'], "relatives": relatives_str}
     fieldnames:list[str] = list(row.keys())
 
     with open(write_to_path, "w", newline="", encoding="utf-8") as file:
@@ -146,10 +141,8 @@ def export_patient_csv(record:dict, path:str | None = None) -> str:
 
 
 def export_patient_docx(record:dict, path:str | None = None) -> str:
-    user_record:dict = record["user"]
-    relatives_record:list[dict] = record["relatives"]
 
-    patient_id:str = user_record["patient_id"]
+    patient_id:str = record['user']['patient_id']
     filename:str = f"{patient_id}_{format_time("file_name")}.docx"
 
     write_to_path:Path = resolve_export_path(filename, path)
@@ -158,13 +151,13 @@ def export_patient_docx(record:dict, path:str | None = None) -> str:
     doc.add_heading("Patient Record", level=1)
     doc.add_paragraph(f"Export Time: {format_time("in_file")}")
     
-    doc.add_heading("Patient Details", level=2)
-    for key, val in user_record.items():
+    doc.add_heading("User Details", level=2)
+    for key, val in record['user'].items():
         doc.add_paragraph(f"{key}: {val}")
 
     doc.add_heading("Relatives Details", level=2)
-    if relatives_record:
-        for i, relative in enumerate(relatives_record):
+    if record['relatives']:
+        for i, relative in enumerate(record['relatives']):
             doc.add_paragraph(f"Relative{str(i)}")
             for key, val in relative.items():
                 doc.add_paragraph(f"{key}: {val}")
@@ -177,11 +170,9 @@ def export_patient_docx(record:dict, path:str | None = None) -> str:
 
 
 def export_patient_pdf(record:dict, path:str | Path | None = None) -> str:
-    user_record:dict = record["user"]
-    relatives_record:list[dict] = record["relatives"]
 
-    patient_id:str = user_record["patient_id"]
-    filename:str = f"{patient_id}_{format_time("file_name")}.pdf"
+    patient_id:str = record['user']['patient_id']
+    filename:str = f"{patient_id}_{format_time('file_name')}.pdf"
 
     write_to_path:Path = resolve_export_path(filename, path)
 
@@ -190,10 +181,10 @@ def export_patient_pdf(record:dict, path:str | Path | None = None) -> str:
     story.append(Paragraph("Patient Record", styles["Title"]))
     story.append(Paragraph(f"Export Time: {format_time("in_file")}", styles["Normal"]))
     story.append(Paragraph("Patient Details", styles["Heading2"]))
-    for key, val in user_record.items():
+    for key, val in record['user'].items():
         story.append(Paragraph(f"{key}: {val}", styles["Normal"]))
     story.append(Paragraph("Relatives", styles["Heading2"]))
-    if relatives_record:
+    if record['relatives']:
         header = [Paragraph(h, styles["Normal"]) for h in ["First Name", "Middle Name", "Last Name", "Email", "Phone Number"]]
         rows = [
             [
@@ -203,7 +194,7 @@ def export_patient_pdf(record:dict, path:str | Path | None = None) -> str:
                 Paragraph(rel["email"], styles["Normal"]),
                 Paragraph(rel["phone_number"], styles["Normal"]),
             ]
-            for rel in relatives_record
+            for rel in record['relatives']
         ]
         table = Table([header, *rows], colWidths=[70, 70, 80, 170, 80])
         table.setStyle(TableStyle([
@@ -233,13 +224,13 @@ def build_admin_records(patient_id_list:list[str]) -> list[dict]:
 
 def export_admin_txt(records:list[dict], path:str | Path | None = None) -> str: 
 
-    filename:str = f"admin_export_{format_time("file_name")}.txt"
+    filename:str = f"admin_export_{format_time('file_name')}.txt"
 
     write_to_path:Path = resolve_export_path(filename, path)
 
     with open(write_to_path, "w", encoding="utf-8") as file:
 
-        file.write(f"Export Time: {format_time("in_file")}")
+        file.write(f"Export Time: {format_time('in_file')}")
         for record in records:
             file.write(f"\n=========={record['user']['patient_id']}==========\n")
             file.write("\n----------User Data----------\n")
@@ -250,7 +241,8 @@ def export_admin_txt(records:list[dict], path:str | Path | None = None) -> str:
             relative_data:list[dict] = record["relatives"]
             if relative_data:
                 file.write("\n----------Relatives Data----------\n")
-                for relative in relative_data:
+                for i, relative in enumerate(relative_data):
+                    file.write(f"Relative{str(i)}\n")
                     for key, val in relative.items():
                         file.write(f"{key}: {val}\n")
             else:
@@ -259,4 +251,96 @@ def export_admin_txt(records:list[dict], path:str | Path | None = None) -> str:
     return str(write_to_path)
 
 def export_admin_csv(records:list[dict], path:str | Path | None = None) -> str:
-    ...
+    
+    filename:str = f"admin_export_{format_time('file_name')}.csv"
+    
+    write_to_path:Path = resolve_export_path(filename, path)
+
+    fieldnames:list[str] = ["patient_id", "first_name", "middle_name", "last_name", "date_of_birth",
+                           "age", "symptoms", "email", "phone_number", "relatives"]
+    with open (write_to_path, "w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+        print("Note: each patient's relatives are stored in a single ';'-separated field.")
+        for record in records:
+            relatives_str:str = "; ".join(
+            f"{rel['first_name']} {rel.get('middle_name') or ''} {rel['last_name']}({rel['email']}, {rel['phone_number']})"
+            for rel in record['relatives'])                                                                                                
+            rows:dict[str, str] = {**record['user'], "relatives": relatives_str}
+            writer.writerow(rows)
+
+    return str(write_to_path)
+
+def export_admin_docx(records:list[dict], path:str | Path | None = None) -> str:
+
+    filename:str = f"admin_export_{format_time('file_name')}.docx"
+
+    write_to_path:Path = resolve_export_path(filename, path)
+
+    doc = Document()
+    doc.add_heading("Admin Export", level=1)
+    doc.add_paragraph(f"Export Time: {format_time('in_file')}")
+
+    for record in records:
+        doc.add_heading(f"Patient {record['user']['patient_id']}", level=2)
+        doc.add_heading("User Data", level=3)
+        for key, val in record['user'].items():
+            doc.add_paragraph(f"{key}: {val}")
+        
+        if record['relatives']:
+            doc.add_heading("Relatives Data", level=3)
+            for i, relative in enumerate(record['relatives']):
+                doc.add_heading(f"Relative{str(i)}", level=4)
+                for key, val in relative.items():
+                    doc.add_paragraph(f"{key}: {val}")
+        else:
+            doc.add_paragraph("This User doesn't yet have any Relatives attached.")
+
+    doc.save(str(write_to_path))
+
+    return str(write_to_path)
+
+
+def export_admin_pdf(records:list[dict], path:str | Path | None = None) -> str:
+
+    filename:str = f"admin_export_{format_time('file_name')}.pdf"
+
+    write_to_path:Path = resolve_export_path(filename, path)
+
+    styles:StyleSheet1 = getSampleStyleSheet()
+    story:list = []
+    story.append(Paragraph("Admin Export", styles['Title']))
+    story.append(Paragraph(f"Export Time: {format_time('in_file')}", styles['Normal']))
+
+    for record in records:
+        story.append(Paragraph(f"Patient {record['user']['patient_id']}", styles['Heading2']))
+        story.append(Paragraph("User Data", styles['Heading3']))
+        for key, val in record['user'].items():
+            story.append(Paragraph(f"{key}: {val}", styles['Normal']))
+
+        story.append(Paragraph("Relatives Data", styles['Heading3']))
+        if record['relatives']:
+            header = [Paragraph(h, styles["Normal"]) for h in ["First Name", "Middle Name", "Last Name", "Email", "Phone Number"]]
+            rows = [
+                [
+                    Paragraph(rel["first_name"], styles["Normal"]),
+                    Paragraph(rel.get("middle_name") or "", styles["Normal"]),
+                    Paragraph(rel["last_name"], styles["Normal"]),
+                    Paragraph(rel["email"], styles["Normal"]),
+                    Paragraph(rel["phone_number"], styles["Normal"]),
+                ]
+                for rel in record['relatives']
+            ]
+            table = Table([header, *rows], colWidths=[70, 70, 80, 170, 80])
+            table.setStyle(TableStyle([
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+                ("BACKGROUND", (0, 0), (-1, 0), colors.gray),
+            ]))        
+            story.append(table)
+        else:
+            story.append(Paragraph("This User doesn't yet have any Relatives attached", styles['Normal']))
+
+    doc = SimpleDocTemplate(str(write_to_path), pagesize=A4)
+    doc.build(story)
+
+    return str(write_to_path)
