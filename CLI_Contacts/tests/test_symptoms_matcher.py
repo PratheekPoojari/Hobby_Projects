@@ -11,10 +11,10 @@ with open(SYMPTOMS_PATH, "r") as file:
     for row in reader:
         symptoms_csv.append(row)
 
-def find_row_with_min_keywords(min_count: int) -> dict:
-    for row in symptom_matcher.diseases_csv:
-        if len(row["keywords"].split(";")) >= min_count:
-            return row
+def find_code_with_min_keywords(min_count: int) -> tuple[str, dict]:
+    for code, data in symptom_matcher.diseases_db.items():
+        if len(data["keywords"].split(";")) >= min_count:
+            return code, data
     raise AssertionError(f"No disease row has at least {min_count} keywords — can't run this test")
 
 def get_symptoms_row(row_id: str) -> dict:
@@ -24,17 +24,19 @@ def get_symptoms_row(row_id: str) -> dict:
     raise AssertionError(f"No row with id={row_id} in symptoms.csv")
 # ---------- direct unit tests, built from diseases.csv keywords ----------
 def test_allocate_code_single_keyword_match():
-    row = symptom_matcher.diseases_csv[0]
-    keyword = row["keywords"].split(";")[0]
+    code = list(symptom_matcher.diseases_db.keys())[0]
+    data = symptom_matcher.diseases_db[code]
+    keyword = data["keywords"].split(";")[0]
     result = symptom_matcher.allocate_code(keyword)
-    assert result == row["code"]
+    assert result == code
     print("test_allocate_code_single_keyword_match: PASSED")
 
 def test_allocate_code_case_insensitive():
-    row = symptom_matcher.diseases_csv[0]
-    keyword = row["keywords"].split(";")[0]
+    code = list(symptom_matcher.diseases_db.keys())[0]
+    data = symptom_matcher.diseases_db[code]
+    keyword = data["keywords"].split(";")[0]
     result = symptom_matcher.allocate_code(keyword.upper())
-    assert result == row["code"]
+    assert result == code
     print("test_allocate_code_case_insensitive: PASSED")
 
 def test_allocate_code_no_match_returns_zero():
@@ -50,13 +52,16 @@ def test_allocate_code_empty_string_returns_zero():
 def test_allocate_code_higher_hit_count_wins():
     # a disease matched twice beats a different disease matched once,
     # regardless of which one has the higher "priority" value
-    row_multi = find_row_with_min_keywords(2)
-    row_other = next(r for r in symptom_matcher.diseases_csv if r["code"] != row_multi["code"])
-    keywords_multi = row_multi["keywords"].split(";")[:2]
-    keyword_other = row_other["keywords"].split(";")[0]
+    code_multi, data_multi = find_code_with_min_keywords(2)
+    code_other = next(c for c in symptom_matcher.diseases_db.keys() if c != code_multi)
+    data_other = symptom_matcher.diseases_db[code_other]
+    
+    keywords_multi = data_multi["keywords"].split(";")[:2]
+    keyword_other = data_other["keywords"].split(";")[0]
+    
     symptoms = f"{keywords_multi[0]} {keywords_multi[1]} {keyword_other}"
     result = symptom_matcher.allocate_code(symptoms)
-    assert result == row_multi["code"]
+    assert result == code_multi
     print("test_allocate_code_higher_hit_count_wins: PASSED")
 # ---------- realistic sentence tests, from symptoms.csv ----------
 def test_symptoms_csv_tuberculosis():

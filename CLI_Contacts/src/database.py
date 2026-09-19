@@ -74,20 +74,24 @@ cursor.execute(
     """
 )
 
+# ----------------------------------------------------------------------------------
+# OPTIMIZATION: Database Indices for faster lookups
+# Unique constraints (email, phone, PKs) automatically get indices in SQLite,
+# but our name-based searches and FK lookups currently require full table scans (O(N)).
+# Adding indices turns these into O(log N) lookups.
+# ----------------------------------------------------------------------------------
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_first_name ON users(first_name)")
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_last_name ON users(last_name)")
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_relatives_first_name ON relatives(first_name)")
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_relatives_last_name ON relatives(last_name)")
+# FKs in SQLite are not indexed by default. An index here speeds up ON DELETE CASCADE
+# and our frequent get_relatives_by_patient_id() queries.
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_relatives_patient_id ON relatives(patient_id)")
+
 def get_all_patient_ids() -> list[str]:
-    # "SELECTS" and stores all the patient_id from the users table.
+    # Returns a list of patient_ids efficiently using a comprehension
     cursor.execute("SELECT patient_id FROM users")
-    # Returns a list of tuples containing the patient_ids. Ex: [("CA0001",), ("TB2003",), etc....]
-    patient_id_raw:list[sqlite3.Row] = cursor.fetchall()
-    # declare a empty list to avoid the 'possibly unbound' error.
-    patient_id_formatted:list[str] = []    
-    # row -> set to each value in the list of tuples, until it reaches the last tuple of the list.
-    for row in patient_id_raw:
-        # appends to the empty list all the patient_ids that exist, 
-        # as strings by accessing the very fisrt element of the tuple.
-        patient_id_formatted.append(row[0])
-    # returns the entire list. 
-    return patient_id_formatted
+    return [row[0] for row in cursor.fetchall()]
 
 def is_duplicate(phone: str | None = None, email: str | None = None) -> bool:
     if phone is None and email is None:
@@ -145,6 +149,7 @@ def insert_user(user:User):
                    INSERT INTO users (patient_id, first_name, middle_name, last_name, date_of_birth, 
                    symptoms, email, phone_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                    """, (user.patient_id, first, middle, last, dob, user.symptoms, user.email, user.number))
+    hospital.commit()
 
 def patient_id_exists(patient_id:str) -> bool:
     cursor.execute("SELECT patient_id FROM users WHERE patient_id = ?", (patient_id,))
@@ -163,6 +168,7 @@ def insert_relative(relative:Relatives):
                    INSERT INTO relatives (patient_id, first_name, middle_name, last_name, email,
                    phone_number) VALUES (?, ?, ?, ?, ?, ?)
                    """, (relative.patient_id, first, middle, last, relative.email, relative.number))
+    hospital.commit()
 
 def search_user_by_patient_id(patient_id:str) -> dict[str, str] | None:
     cursor.execute("SELECT * FROM users WHERE patient_id = ?", (patient_id,))
@@ -268,18 +274,21 @@ def update_query(table: str, field: str, value: str, row_id: str) -> None:
         cursor.execute(f"UPDATE users SET {field} = ? WHERE patient_id = ?", (value, row_id))
     elif table == "relatives":
         cursor.execute(f"UPDATE relatives SET {field} = ? WHERE relative_row_id = ?", (value, row_id))
+    hospital.commit()
 
 def delete_query(table:str, row_id:str) -> None:
     if table == "users":
         cursor.execute("DELETE FROM users WHERE patient_id = ?", (row_id,))
     elif table == "relatives":
         cursor.execute("DELETE FROM relatives WHERE relative_row_id = ?", (row_id,))
+    hospital.commit()
 
 def insert_account(username:str, hashed_password:str, salt:str, role:str) -> None:
     cursor.execute("""
                    INSERT INTO accounts (username, hashed_password, salt, role)
                    VALUES (?, ?, ?, ?)
                    """, (username, hashed_password, salt, role))
+    hospital.commit()
 
 def get_account(username:str) -> dict | None:
     cursor.execute("SELECT * FROM accounts WHERE username = ?", (username,))
@@ -290,6 +299,7 @@ def get_account(username:str) -> dict | None:
 
 def link_patient_id(username:str, patient_id:str) -> None:
     cursor.execute("UPDATE accounts SET patient_id = ? WHERE username = ?", (patient_id, username))
+    hospital.commit()
 
 def get_all_users() -> list[dict]:
     cursor.execute("SELECT patient_id, first_name, middle_name, last_name FROM users")

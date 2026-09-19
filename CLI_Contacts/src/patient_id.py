@@ -1,50 +1,42 @@
 import heapq
 import database
 
-raw_ids:list[str] = database.get_all_patient_ids()
-id_number:list[int] = sorted(int(id[2:]) for id in raw_ids)
-free_heap:list[int] = []
+def build_free_heap(existing_ids: list[int]) -> list[int]:
+    """Finds missing IDs in O(N) time and heapifies them in O(N)."""
+    if not existing_ids:
+        return []
+    
+    max_id = existing_ids[-1]
+    # Set difference to find all gaps
+    missing = set(range(max_id + 1)) - set(existing_ids)
+    
+    free_heap = list(missing)
+    heapq.heapify(free_heap)
+    return free_heap
 
-def get_counter(user_id:list[int]) -> int:
-    try:
-        return user_id[len(user_id) - 1] + 1
-    except IndexError:
-        return 0
-   
-counter = get_counter(id_number)
+# Initialization happens once on module load
+raw_ids: list[str] = database.get_all_patient_ids()
+# Convert the numeric parts to sorted integers
+id_number: list[int] = sorted(int(pid[2:]) for pid in raw_ids)
 
-def allocate_heap(user_id:list[int], heap_list:list[int]) -> list:
-    expected = 0
-    for value in user_id:
-        while expected < value:
-            heapq.heappush(heap_list, expected)
-            expected += 1
-        expected = value + 1
-    return heap_list
+# The highest ID allocated plus 1 (the frontier for new IDs)
+counter: int = id_number[-1] + 1 if id_number else 0
 
-formatted_heap = allocate_heap(id_number, free_heap)
+# Min-heap of previously freed IDs (available for reuse)
+formatted_heap: list[int] = build_free_heap(id_number)
 
-def generate_patient_id(code:str) -> str:
-    #if formatted_heap != []:
-    # does the same as above as empty containers in python are 'falsy'
+def generate_patient_id(code: str) -> str:
+    global counter
+    
     if formatted_heap:
-        smallest_free_id:str = str(heapq.heappop(formatted_heap))
+        smallest_free_id: int = heapq.heappop(formatted_heap)
     else:
-        global counter
-        smallest_free_id:str = str(counter)
+        smallest_free_id: int = counter
         counter += 1
-    # str.zfill(n) -> makes it so that the string is padded with 0s until it's length reaches 4
-    smallest_free_id = str(smallest_free_id).zfill(4)
-    # My own way of doing what a string method called "zfill" does.
-    #if len(str(smallest_free_id)) != 4:
-        # actual:str = str(smallest_free_id)            
-        # appendable:int = 4 - len(actual)
-        # actual = ("0" * appendable) + actual
-        # smallest_free_id = actual
-    patient_id:str = code + smallest_free_id
-    return patient_id
+        
+    return f"{code}{str(smallest_free_id).zfill(4)}"
 
-def free_patient_id(patient_id:str) -> None:
-    patient_id_int:int = int(patient_id[2:])
+def free_patient_id(patient_id: str) -> None:
+    patient_id_int: int = int(patient_id[2:])
     heapq.heappush(formatted_heap, patient_id_int)
 

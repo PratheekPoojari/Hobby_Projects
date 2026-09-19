@@ -4,22 +4,22 @@ import sqlite3
 from patterns import *
 from database import *
 
-def hash_password(password:str) -> tuple:
-    salt:str = secrets.token_hex(16)
-    hashed:bytes = hashlib.pbkdf2_hmac(
+def hash_password(password: str) -> tuple:
+    salt: str = secrets.token_hex(16)
+    hashed: bytes = hashlib.pbkdf2_hmac(
             "sha256",
             password.encode(),
             salt.encode(),
-            100_000
+            600_000
         )
     return (hashed.hex(), salt)
 
-def verify_password(password:str, stored_hash:str, stored_salt:str) -> bool:
-    new_hash:bytes = hashlib.pbkdf2_hmac(
+def verify_password(password: str, stored_hash: str, stored_salt: str) -> bool:
+    new_hash: bytes = hashlib.pbkdf2_hmac(
             "sha256",
             password.encode(),
             stored_salt.encode(),
-            100_000
+            600_000
         )
     return secrets.compare_digest(stored_hash, new_hash.hex())
 

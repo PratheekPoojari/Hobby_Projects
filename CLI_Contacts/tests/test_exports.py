@@ -24,10 +24,12 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 import pytest
+import PyPDF2
 from docx import Document as DocxDocument
+from datetime import date
 
 import database
-from classes import User, Relatives, calc_age, session_date
+from classes import User, Relatives, calc_age
 import exports
 
 
@@ -132,14 +134,14 @@ def _record_for(patient_id: str) -> dict[str, Any]:
 
 def test_format_time_file_name_format():
     result = exports.format_time("file_name")
-    if result is not None:
-        assert re.fullmatch(r"\d{2}-\d{2}-\d{4}_\d{2}-\d{2}-\d{2}", result)
+    assert result is not None
+    assert re.fullmatch(r"\d{2}-\d{2}-\d{4}_\d{2}-\d{2}-\d{2}", result)
 
 
 def test_format_time_in_file_format():
     result = exports.format_time("in_file")
-    if result is not None:
-        assert re.fullmatch(r"\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}", result)
+    assert result is not None
+    assert re.fullmatch(r"\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}", result)
 
 
 def test_format_time_invalid_select_returns_none():
@@ -208,7 +210,7 @@ def test_build_patient_record_success_no_relatives(solo_user):
     assert status == "success"
     assert isinstance(data, dict)
     assert data["user"]["patient_id"] == solo_user.patient_id
-    assert data["user"]["age"] == calc_age(session_date, solo_user.date_of_birth)
+    assert data["user"]["age"] == calc_age(date.today(), solo_user.date_of_birth)
     assert data["relatives"] == []
 
 

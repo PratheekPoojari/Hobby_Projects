@@ -76,18 +76,18 @@ def test_date_of_birth_invalid_format_raises():
 
 def test_date_of_birth_today_raises():
     # the setter requires strictly BEFORE today — today itself must fail
-    today_str = session_date.strftime("%d-%m-%Y")
+    today_str = date.today().strftime("%d-%m-%Y")
     assert_raises_value_error(User, VALID_PATIENT_ID, today_str, VALID_SYMPTOMS, VALID_NAME, VALID_EMAIL, VALID_NUMBER)
     print("test_date_of_birth_today_raises: PASSED")
 
 def test_date_of_birth_future_raises():
-    future_str = (session_date + timedelta(days=1)).strftime("%d-%m-%Y")
+    future_str = (date.today() + timedelta(days=1)).strftime("%d-%m-%Y")
     assert_raises_value_error(User, VALID_PATIENT_ID, future_str, VALID_SYMPTOMS, VALID_NAME, VALID_EMAIL, VALID_NUMBER)
     print("test_date_of_birth_future_raises: PASSED")
 # ---------- User: age ----------
 def test_age_birthday_already_occurred_this_year():
     # Jan 1 — virtually guaranteed to be <= today's (month, day), so the full year count applies
-    dob_str = date(session_date.year - 30, 1, 1).strftime("%d-%m-%Y")
+    dob_str = date(date.today().year - 30, 1, 1).strftime("%d-%m-%Y")
     user = User(VALID_PATIENT_ID, dob_str, VALID_SYMPTOMS, VALID_NAME, VALID_EMAIL, VALID_NUMBER)
     assert user.age == 30
     print("test_age_birthday_already_occurred_this_year: PASSED")
@@ -95,7 +95,7 @@ def test_age_birthday_already_occurred_this_year():
 def test_age_birthday_not_yet_occurred_this_year():
     # Dec 31 — later than today's (month, day) on any day this test runs except Dec 31 itself,
     # so age should be one less than the raw year difference
-    dob_str = date(session_date.year - 30, 12, 31).strftime("%d-%m-%Y")
+    dob_str = date(date.today().year - 30, 12, 31).strftime("%d-%m-%Y")
     user = User(VALID_PATIENT_ID, dob_str, VALID_SYMPTOMS, VALID_NAME, VALID_EMAIL, VALID_NUMBER)
     assert user.age == 29
     print("test_age_birthday_not_yet_occurred_this_year: PASSED")

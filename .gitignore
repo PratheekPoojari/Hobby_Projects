@@ -13,6 +13,9 @@ __pycache__/
 *.sqlite
 *.sqlite3
 
+# Database backups
+*.bak
+
 # mypy / pytest caches
 .mypy_cache/
 .pytest_cache/
@@ -20,3 +23,13 @@ __pycache__/
 # OS/editor cruft
 .DS_Store
 *.swp
+
+# Exported patient records & data dumps (Do not track PII)
+CLI_Contacts/exports/
+
+# Log files
+*.log
+
+# AI Agent instructions and history logs
+AGENTS.md
+project-history.md

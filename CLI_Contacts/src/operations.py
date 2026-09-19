@@ -102,22 +102,16 @@ def prompt_patient_id() -> str:
         else:
             print("Invalid 'patient_id'. Please Enter a valid patient_id")
 
-def complete_name(input_name:dict[str, str]) -> str:
-    name_dict = input_name.values()
-    name_list:list[str] = [val for val in name_dict]
-    if len(name_list) == 2:
-        full_name:str = name_list[0] + " " + name_list[1]
-        return full_name
-    else:
-        full_name:str = name_list[0] + " " + name_list[1] + " " + name_list[2]
-        return full_name
+def complete_name(input_name: dict[str, str]) -> str:
+    # Filter out empty strings/None and join the remaining name parts with a space
+    return " ".join(part for part in input_name.values() if part)
     
 # Calls all the required 'propmt'_functions and stores their result in suitable variables.
 # Checks for duplicate values and if none are present, assigns a code and generates a patient_id.
 # The full user name if built using the first, middle(optional) and last, as per the user's input.
 # Then a constructor call is placed to the "User" class to instantiate an object for this specific input.
 # Later, the user_obj is fed into the insert_user(), to add it to database(hospital.db) and save on disk.
-def add_user() -> None:
+def add_user() -> str | None:
     user_name:dict[str, str] = prompt_name()
     user_phone_number:str = prompt_phone_number()
     user_email:str = prompt_email()
@@ -138,6 +132,7 @@ def add_user() -> None:
             free_patient_id(user_patient_id)
             print(f"Failed to create user: {e}")
             return None
+        return user_patient_id
 
 def add_relative() -> None:
     relative_patient_id:str = prompt_patient_id()    
@@ -228,18 +223,19 @@ def ambiguity_check(table: str, search_field: str, result: dict[str, str] | list
             return "Unambiguous"
     return None
 
-def resolve_selection(table:str, candidates:list[dict], row_identifier:str) -> dict | None:
+def resolve_selection(table: str, candidates: list[dict], row_identifier: str) -> dict | None:
     if not isinstance(candidates, list):
         print("Passed unexpected shape of candidates")
         return None
-    if table == "users":
-        for ind, items in enumerate(candidates):
-            if row_identifier == items["patient_id"]:
-                return candidates[ind]
-    if table == "relatives":
-        for ind, items in enumerate(candidates):
-            if row_identifier == str(items["Relatives"]["relative_row_id"]):
-                return candidates[ind]["Relatives"]
+        
+    for item in candidates:
+        if table == "users" and row_identifier == str(item.get("patient_id")):
+            return item
+        elif table == "relatives":
+            # relatives dict structure is sometimes nested under 'Relatives' due to joins/structs
+            rel_data = item.get("Relatives", item)
+            if row_identifier == str(rel_data.get("relative_row_id")):
+                return rel_data
     return None
 
 def update(table: str, search_field: str, search_value: str, changes: dict[str, str], row_identifier: str | None = None) -> tuple:
