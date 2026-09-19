@@ -1,3 +1,8 @@
+"""
+Contains the core CRUD (Create, Read, Update, Delete) business logic.
+Handles data insertion, ambiguity resolution for duplicate names, and strict table joins.
+"""
+
 # To validate the prompted inputs from user.
 from patterns import *
 # To use as type annotations in the add_user and add_relative functions.
@@ -106,6 +111,7 @@ def complete_name(input_name: dict[str, str]) -> str:
     # Filter out empty strings/None and join the remaining name parts with a space
     return " ".join(part for part in input_name.values() if part)
     
+# Helper to consistently format first, middle, and last names into a single string.
 # Calls all the required 'propmt'_functions and stores their result in suitable variables.
 # Checks for duplicate values and if none are present, assigns a code and generates a patient_id.
 # The full user name if built using the first, middle(optional) and last, as per the user's input.
@@ -115,6 +121,7 @@ def add_user() -> str | None:
     user_name:dict[str, str] = prompt_name()
     user_phone_number:str = prompt_phone_number()
     user_email:str = prompt_email()
+# Prompts for and validates all user demographic data, then inserts the record into the DB.
     user_date_of_birth:str = prompt_date_of_birth()
     user_symptoms:str = prompt_symptoms()
     if is_duplicate(user_phone_number, user_email):
@@ -138,6 +145,7 @@ def add_relative() -> None:
     relative_patient_id:str = prompt_patient_id()    
     if patient_id_exists(relative_patient_id):
         relative_name:dict[str, str] = prompt_name()
+# Prompts for relative details and links them to an existing patient_id.
         relative_email:str = prompt_email()
         relative_phone_number:str = prompt_phone_number()
         if is_duplicate(relative_phone_number, relative_email):
@@ -174,6 +182,7 @@ def search(table:str, field:str, value:str) -> dict[str, str] | list[dict] | Non
     if table == "users":
         dispatch_dict:dict[str, FunctionType] = users_search_fields
     elif table == "relatives":
+# Executes a dynamic SELECT query on the specified table and field.
         dispatch_dict:dict[str, FunctionType] = relatives_search_fields
     else:
         print("Invalid Table")
@@ -205,6 +214,7 @@ def ambiguity_check(table: str, search_field: str, result: dict[str, str] | list
     if result is None:
         return None
 
+# Determines if a search result requires manual disambiguation (e.g., multiple identical names).
     if table == "users":
         if search_field in name_fields:
             if isinstance(result, list) and len(result) == 1:
@@ -227,6 +237,7 @@ def resolve_selection(table: str, candidates: list[dict], row_identifier: str) -
     if not isinstance(candidates, list):
         print("Passed unexpected shape of candidates")
         return None
+# Extracts the exact target row from an ambiguous result set using a unique identifier.
         
     for item in candidates:
         if table == "users" and row_identifier == str(item.get("patient_id")):
@@ -242,6 +253,7 @@ def update(table: str, search_field: str, search_value: str, changes: dict[str, 
     result: dict[str, str] | list[dict] | None = search(table, search_field, search_value)
     if result is None:
         print(f"The value '{search_value}' couldn't be located in the field '{search_field}' of the {table} table.")
+# Updates a specific record after performing ambiguity checks.
         return ("not_found", None)
     ambiguity: str | None = ambiguity_check(table, search_field, result)
     extracted_id: str = ""
@@ -315,6 +327,7 @@ def delete(table:str, search_field:str, search_value:str, row_identifier:str|Non
     result:dict[str, str] | list[dict] | None = search(table, search_field, search_value)
     if result is None:
         print(f"The value '{search_value}' couldn't be located in the field '{search_field}' of the {table} table.")
+# Deletes a record from the database, cascading to relatives if the parent user is deleted.
         return ("not_found", None)
     ambiguity: str | None = ambiguity_check(table, search_field, result)
     extracted_id: str = ""
@@ -388,6 +401,7 @@ def view(table: str, search_field: str, search_value: str) -> None:
     result: dict[str, str] | list[dict] | None = search(table, search_field, search_value)
     if result is None:
         print(f"The value '{search_value}' couldn't be located in the field '{search_field}' of the {table} table.")
+# Retrieves and pretty-prints records matching the search criteria.
         return None
 
     if table == "users":

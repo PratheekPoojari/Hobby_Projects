@@ -1,9 +1,15 @@
+"""
+Manages user authentication, registration, and session creation.
+Utilizes PBKDF2 with 600,000 iterations for secure password hashing.
+"""
+
 import secrets
 import hashlib
 import sqlite3
 from patterns import *
 from database import *
 
+# Hashes a plaintext password using PBKDF2-HMAC-SHA256 and a random salt.
 def hash_password(password: str) -> tuple:
     salt: str = secrets.token_hex(16)
     hashed: bytes = hashlib.pbkdf2_hmac(
@@ -14,6 +20,7 @@ def hash_password(password: str) -> tuple:
         )
     return (hashed.hex(), salt)
 
+# Compares a plaintext password against a stored hash to verify authenticity.
 def verify_password(password: str, stored_hash: str, stored_salt: str) -> bool:
     new_hash: bytes = hashlib.pbkdf2_hmac(
             "sha256",
@@ -41,6 +48,7 @@ def prompt_confirm_password() -> str:
         if is_valid_password(confirm_password):
             return confirm_password
 
+# Handles the CLI flow for registering a new user account, validating uniqueness.
 def sign_up() -> tuple:
     print("""
           The Username may contain alphabets, both upper and lowercase, numbers and underscore.
@@ -64,6 +72,7 @@ def sign_up() -> tuple:
         return ("username_taken", None)
     return ("success", {"username": username, "role": "user", "patient_id":None})
 
+# Authenticates a user and establishes a session dictionary with their roles and IDs.
 def login() -> tuple:
     print("Choose your role: User or Admin")
     role:str = input("Enter your role: ").lower().strip()

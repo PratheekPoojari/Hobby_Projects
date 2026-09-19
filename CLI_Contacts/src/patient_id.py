@@ -1,3 +1,8 @@
+"""
+Manages O(log N) patient_id allocation and recycling using a Min-Heap.
+Ensures the 10,000 ID limit is respected and freed IDs are reused efficiently.
+"""
+
 import heapq
 import database
 
@@ -40,3 +45,4 @@ def free_patient_id(patient_id: str) -> None:
     patient_id_int: int = int(patient_id[2:])
     heapq.heappush(formatted_heap, patient_id_int)
 
+# Pushes a deleted patient's ID back onto the Min-Heap for future reuse.

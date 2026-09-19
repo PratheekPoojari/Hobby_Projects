@@ -1,3 +1,8 @@
+"""
+Implements NLP symptom parsing using spaCy's PhraseMatcher.
+Maps unstructured patient symptoms to official disease diagnostic codes.
+"""
+
 import spacy
 from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc

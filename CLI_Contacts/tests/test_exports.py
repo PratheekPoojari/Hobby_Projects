@@ -1,4 +1,8 @@
 """
+Test suite for file generation pipelines, validating the content and formatting of exported TXT, CSV, DOCX, and PDF files.
+"""
+
+"""
 test_exports.py
 
 Covers every function in exports.py: the shared helpers (build_patient_record,

@@ -1,3 +1,7 @@
+"""
+Test suite for the NLP spaCy pipeline, verifying exact and partial symptom-to-disease resolutions.
+"""
+
 import sys
 import csv
 from pathlib import Path

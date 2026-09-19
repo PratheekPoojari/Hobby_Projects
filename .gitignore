@@ -33,3 +33,5 @@ CLI_Contacts/exports/
 # AI Agent instructions and history logs
 AGENTS.md
 project-history.md
+
+scratch/

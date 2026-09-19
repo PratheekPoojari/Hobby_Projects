@@ -1,3 +1,7 @@
+"""
+Test suite for CRUD operations, validating database insertions, ambiguity resolution, and cascading deletions.
+"""
+
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))

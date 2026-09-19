@@ -1,3 +1,8 @@
+"""
+The primary entry point and UI driver for the CLI Contacts application.
+Manages all nested menus, user input loops, and delegates to underlying logic modules.
+"""
+
 import sys
 import os
 
@@ -39,6 +44,7 @@ def draw_menu(title: str, options: list[str]) -> dict[int, str]:
     """
     Renders a double-line ASCII box with a centred title and an auto-numbered
     list of options.
+# Renders a responsive, double-lined ASCII menu with numbered options.
 
     Width is the greater of the terminal window width and the minimum content
     width, so the box always spans the full terminal. Falls back to 80 columns
@@ -92,6 +98,7 @@ def get_valid_choice(menu_map: dict[int, str]) -> int:
     """Loops until the user enters a valid integer key that exists in menu_map."""
     while True:
         try:
+# Loops continuously until the user inputs a valid integer choice from the menu.
             choice: int = int(input("  Enter your choice: ").strip())
             if choice in menu_map:
                 return choice
@@ -108,6 +115,7 @@ def profile_completion(username: str) -> str | None:
     """
     Runs add_user() to collect and store the new patient's details, then
     links the generated patient_id back to the account row.
+# Forces a newly registered user to complete their patient demographic profile.
 
     Called both after a fresh sign-up and after a first login where
     patient_id is still None.
@@ -128,6 +136,7 @@ def handle_signup() -> None:
     status, data = sign_up()
     if status == "password_mismatch":
         print("\n  Passwords do not match. Please try again.")
+# Drives the CLI sign-up flow and routes to profile completion on success.
         return
     if status == "username_taken":
         print("\n  That username is already taken. Please choose another.")
@@ -143,6 +152,7 @@ def handle_login() -> None:
     status, session = login()
     if status == "invalid_credentials":
         print("\n  Invalid credentials. Please try again.")
+# Drives the CLI login flow and routes to the appropriate user or admin menu.
         return
     # status == "success"
     if session['role'] == "user" and session['patient_id'] is None:
@@ -164,10 +174,12 @@ def handle_user_view(session: dict) -> None:
     view("users", "patient_id", session['patient_id'])
 
 
+# CLI handler for a user viewing their own profile.
 def handle_user_update(session: dict) -> None:
     field_map = draw_menu(
         "UPDATE PROFILE — Choose a field",
         ["First Name", "Middle Name", "Last Name", "Date of Birth", "Email", "Phone Number", "Back"]
+# CLI handler for a user updating specific fields in their profile.
     )
     field_choice: int = get_valid_choice(field_map)
     if field_map[field_choice] == "Back":
@@ -192,6 +204,7 @@ def handle_user_delete(session: dict) -> bool:
     """
     Prompts for confirmation and deletes the user's own profile.
     Returns True on success so user_menu() knows to break out and return
+# CLI handler for a user deleting their entire profile and account.
     to the main menu.
     """
     confirm: str = input(
@@ -214,6 +227,7 @@ def _pick_own_relative(session: dict) -> dict | None:
     """
     Displays the logged-in user's relatives and returns the dict of whichever
     one they pick. Returns None if there are no relatives or they cancel.
+# Helper that lists a user's relatives and forces them to select one by ID.
     """
     relatives: list[dict] | None = get_relatives_by_patient_id(session['patient_id'])
     if not relatives:
@@ -242,6 +256,7 @@ def handle_add_relative(session: dict) -> None:
     confirm_map = draw_menu(
         "ADD A RELATIVE",
         ["Proceed", "Back"]
+# CLI handler for a user adding a new relative to their profile.
     )
     if get_valid_choice(confirm_map) == 2:
         return
@@ -254,6 +269,7 @@ def handle_update_relative(session: dict) -> None:
     chosen: dict | None = _pick_own_relative(session)
     if chosen is None:
         return
+# CLI handler for a user updating one of their linked relatives.
     field_map = draw_menu(
         "UPDATE RELATIVE — Choose a field",
         ["First Name", "Middle Name", "Last Name", "Email", "Phone Number", "Back"]
@@ -280,6 +296,7 @@ def handle_delete_relative(session: dict) -> None:
     chosen: dict | None = _pick_own_relative(session)
     if chosen is None:
         return
+# CLI handler for a user deleting one of their linked relatives.
     middle: str = chosen.get('middle_name') or ''
     full_name: str = (
         f"{chosen['first_name']} {middle} {chosen['last_name']}"
@@ -299,6 +316,7 @@ def handle_user_export(session: dict) -> None:
     status, record = build_patient_record("patient_id", session['patient_id'])
     if status != "success":
         print("\n  Could not retrieve your data for export.")
+# CLI handler for a user exporting their own data to a chosen format.
         return
     fmt_map = draw_menu("EXPORT FORMAT", ["TXT", "CSV", "DOCX", "PDF", "Back"])
     fmt_choice: int = get_valid_choice(fmt_map)
@@ -319,6 +337,7 @@ def user_menu(session: dict) -> None:
     while True:
         menu_map = draw_menu(
             f"USER MENU  —  {session['username']}",
+# The main event loop for an authenticated standard user.
             [
                 "View my profile",
                 "Update my profile",
@@ -359,6 +378,7 @@ def _prompt_table() -> str:
     """
     Asks admin to pick users, relatives, or go back.
     Returns the DB table name string, or the sentinel "back".
+# Admin helper to select which database table to interact with.
     """
     table_map = draw_menu("Choose a table", ["Users", "Relatives", "Back"])
     choice = get_valid_choice(table_map)
@@ -371,6 +391,7 @@ def _prompt_search_params(table: str) -> tuple[str, str]:
     """
     Prompts the admin for a search field and a search value.
     Returns ("back", "") if the admin picks Back, otherwise (db_field, value).
+# Admin helper to select a field and input a search value.
     """
     if table == "users":
         field_opts = [
@@ -397,6 +418,7 @@ def _resolve_ambiguity(table: str, candidates: list[dict]) -> str | None:
     """
     Prints all ambiguous candidates and prompts the admin to pick one by
     its row identifier (patient_id for users, relative_row_id for relatives).
+# Admin helper to manually select a specific row when a search returns multiple matches.
     Returns the chosen identifier string, or None if cancelled.
     """
     print(f"\n  {len(candidates)} matches found:\n")
@@ -436,6 +458,7 @@ def handle_admin_view() -> None:
     table: str = _prompt_table()
     if table == "back":
         return
+# CLI handler for an admin viewing any record in the system.
     field, value = _prompt_search_params(table)
     if field == "back":
         return
@@ -446,6 +469,7 @@ def handle_admin_update() -> None:
     table: str = _prompt_table()
     if table == "back":
         return
+# CLI handler for an admin updating any record in the system.
     field, value = _prompt_search_params(table)
     if field == "back":
         return
@@ -483,6 +507,7 @@ def handle_admin_delete() -> None:
     table: str = _prompt_table()
     if table == "back":
         return
+# CLI handler for an admin deleting any record in the system.
     field, value = _prompt_search_params(table)
     if field == "back":
         return
@@ -512,6 +537,7 @@ def handle_admin_add_relative() -> None:
     confirm_map = draw_menu("ADD A RELATIVE", ["Proceed", "Back"])
     if get_valid_choice(confirm_map) == 2:
         return
+# CLI handler for an admin adding a relative to any patient.
     add_relative()
 
 
@@ -519,6 +545,7 @@ def handle_admin_export() -> None:
     all_users: list[dict] = get_all_users()
     if not all_users:
         print("\n  No patients in the database.")
+# CLI handler for an admin performing single or bulk exports.
         return
 
     print("\n  All patients:\n")
@@ -564,6 +591,7 @@ def admin_menu(session: dict) -> None:
     while True:
         menu_map = draw_menu(
             f"ADMIN MENU  —  {session['username']}",
+# The main event loop for an authenticated administrative user.
             [
                 "View a record",
                 "Update a record",
@@ -597,6 +625,7 @@ def main_menu() -> None:
     while True:
         menu_map = draw_menu(
             "HOSPITAL RECORDS MANAGER",
+# The root unauthenticated event loop (Login / Sign Up).
             ["Sign Up", "Login", "Exit"]
         )
         choice: int = get_valid_choice(menu_map)

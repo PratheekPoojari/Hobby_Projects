@@ -1,3 +1,7 @@
+"""
+Test suite for authentication mechanisms, including password hashing, uniqueness constraints, and session generation.
+"""
+
 import sys
 from pathlib import Path
 from unittest.mock import patch

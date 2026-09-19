@@ -1,6 +1,12 @@
+"""
+Defines the core data structures for Users and Relatives.
+Uses __slots__ for memory optimization, avoiding dynamic dictionary creation for each object.
+"""
+
 from patterns import *
 from datetime import date, datetime
 
+# Calculates the exact age in years based on the provided date of birth.
 def calc_age(current: date, birth: date) -> int: 
     year: int = current.year - birth.year
     if (current.month, current.day) < (birth.month, birth.day):

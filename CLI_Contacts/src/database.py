@@ -1,3 +1,8 @@
+"""
+Handles all direct SQLite database interactions and schema definitions.
+Enforces foreign keys, unique constraints, and creates SQL indices for O(log N) lookups.
+"""
+
 import sqlite3
 from pathlib import Path
 from classes import User, Relatives 
@@ -88,8 +93,8 @@ cursor.execute("CREATE INDEX IF NOT EXISTS idx_relatives_last_name ON relatives(
 # and our frequent get_relatives_by_patient_id() queries.
 cursor.execute("CREATE INDEX IF NOT EXISTS idx_relatives_patient_id ON relatives(patient_id)")
 
+# Returns a list of patient_ids efficiently using a comprehension
 def get_all_patient_ids() -> list[str]:
-    # Returns a list of patient_ids efficiently using a comprehension
     cursor.execute("SELECT patient_id FROM users")
     return [row[0] for row in cursor.fetchall()]
 
@@ -301,6 +306,7 @@ def link_patient_id(username:str, patient_id:str) -> None:
     cursor.execute("UPDATE accounts SET patient_id = ? WHERE username = ?", (patient_id, username))
     hospital.commit()
 
+# Updates an account record to link it to a newly generated patient_id.
 def get_all_users() -> list[dict]:
     cursor.execute("SELECT patient_id, first_name, middle_name, last_name FROM users")
     return [dict(row) for row in cursor.fetchall()]

@@ -1,3 +1,7 @@
+"""
+Test suite for dataclasses, ensuring memory slots function correctly and age calculations are accurate.
+"""
+
 import sys
 from pathlib import Path
 from datetime import timedelta

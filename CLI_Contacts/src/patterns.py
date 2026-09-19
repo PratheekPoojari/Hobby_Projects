@@ -1,3 +1,8 @@
+"""
+Pre-compiles Regex patterns for data validation.
+Using pre-compiled patterns ensures O(1) setup time during loops, optimizing validation for emails, names, phones, etc.
+"""
+
 import re
 from pathlib import Path
 import csv

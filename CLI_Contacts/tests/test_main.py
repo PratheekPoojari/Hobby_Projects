@@ -1,3 +1,7 @@
+"""
+Test suite for the CLI driver, using robust mocking to simulate STDIN/STDOUT and validate UI routing logic.
+"""
+
 import sys
 import os
 from pathlib import Path

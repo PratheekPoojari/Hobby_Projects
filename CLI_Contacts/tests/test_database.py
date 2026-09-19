@@ -1,3 +1,7 @@
+"""
+Test suite for SQLite schema creation, foreign key enforcement, and database connection integrity.
+"""
+
 import sys
 import sqlite3
 from pathlib import Path

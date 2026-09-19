@@ -1,3 +1,8 @@
+"""
+Generates downloadable patient records in multiple file formats (.txt, .csv, .docx, .pdf).
+Uses shared layout builders to completely deduplicate formatting logic.
+"""
+
 import csv
 from datetime import date, datetime
 from pathlib import Path
@@ -12,6 +17,7 @@ from classes import calc_age
 from operations import search, get_relatives_by_patient_id, ambiguity_check, resolve_selection
 
 
+# Aggregates a user and all their relatives into a single structured dictionary for export.
 def build_patient_record(search_field:str, search_value:str, row_identifier:str | None = None) -> tuple[str, dict | list | None]:
     result:dict[str, str] | list[dict] | None = search("users", search_field, search_value)
     if result is None:
@@ -47,6 +53,7 @@ def build_patient_record(search_field:str, search_value:str, row_identifier:str 
     return ("success", record)
 
 
+# Prompts the user for a custom absolute directory path to save the export.
 def prompt_export_path() -> Path | None:
     while True:
         path:str = input("Enter the absolute path to where you would like to export the file:").strip()
@@ -67,6 +74,7 @@ def prompt_export_path() -> Path | None:
             return None
 
 
+# Calculates the final absolute path, defaulting to the local exports/ directory if none provided.
 def resolve_export_path(filename:str, path:str | Path | None = None) -> Path:
     export_to_path:Path = Path(__file__).resolve().parent.parent / "exports" / filename   
     if path:
@@ -76,6 +84,7 @@ def resolve_export_path(filename:str, path:str | Path | None = None) -> Path:
     return export_to_path
 
 
+# Returns formatted timestamp strings for either filenames or internal document headers.
 def format_time(select:str) -> str | None:
     timestamp:datetime = datetime.now()
     if select == "file_name":
@@ -86,6 +95,7 @@ def format_time(select:str) -> str | None:
 
 # ----------------- SHARED EXPORT HELPERS -----------------
 
+# Shared helper that writes a dictionary record to a plaintext file.
 def write_txt_record(file, record: dict) -> None:
     file.write("----------User Data----------\n")
     for key, val in record['user'].items():
@@ -102,6 +112,7 @@ def write_txt_record(file, record: dict) -> None:
         file.write("This User doesn't yet have any Relatives attached.\n")
 
 
+# Shared helper that flattens a patient and their relatives into a single CSV row.
 def format_csv_row(record: dict) -> dict:
     relatives_str = "; ".join(
         f"{rel['first_name']} {rel.get('middle_name') or ''} {rel['last_name']}({rel['email']}, {rel['phone_number']})"
@@ -112,6 +123,7 @@ def format_csv_row(record: dict) -> dict:
     return {**record['user'], "relatives": relatives_str}
 
 
+# Shared helper that builds paragraphs and headings for a Word Document.
 def write_docx_record(doc, record: dict, is_admin: bool = False) -> None:
     doc.add_heading("User Details" if not is_admin else "User Data", level=2 if not is_admin else 3)
     for key, val in record['user'].items():
@@ -131,6 +143,7 @@ def write_docx_record(doc, record: dict, is_admin: bool = False) -> None:
         doc.add_paragraph("This User doesn't yet have any Relatives attached.")
 
 
+# Shared helper that constructs the ReportLab elements (tables, paragraphs) for PDF generation.
 def build_pdf_story(story: list, record: dict, styles: StyleSheet1) -> None:
     story.append(Paragraph("User Data" if "Patient" in story[-1].text else "Patient Details", styles['Heading2' if "Patient Details" in story[-1].text else 'Heading3']))
     for key, val in record['user'].items():
@@ -164,6 +177,7 @@ def export_patient_txt(record: dict, path: str | Path | None = None) -> str:
     patient_id: str = record['user']["patient_id"]
     write_to_path = resolve_export_path(f"{patient_id}_{format_time('file_name')}.txt", path)
     
+# Exports a single patient record to a .txt file.
     with open(write_to_path, "w", encoding="utf-8") as file:
         file.write(f"Export Time: {format_time('in_file')}\n")
         write_txt_record(file, record)
@@ -175,6 +189,7 @@ def export_patient_csv(record: dict, path: str | None = None) -> str:
     patient_id: str = record['user']["patient_id"]
     write_to_path = resolve_export_path(f"{patient_id}_{format_time('file_name')}.csv", path)
     
+# Exports a single patient record to a .csv file.
     row = format_csv_row(record)
     with open(write_to_path, "w", newline="", encoding="utf-8") as file:
         print("Note: each patient's relatives are stored in a single ';'-separated field.")
@@ -189,6 +204,7 @@ def export_patient_docx(record: dict, path: str | None = None) -> str:
     patient_id: str = record['user']['patient_id']
     write_to_path = resolve_export_path(f"{patient_id}_{format_time('file_name')}.docx", path)
     
+# Exports a single patient record to a .docx file.
     doc = Document()
     doc.add_heading("Patient Record", level=1)
     doc.add_paragraph(f"Export Time: {format_time('in_file')}")
@@ -202,6 +218,7 @@ def export_patient_pdf(record: dict, path: str | Path | None = None) -> str:
     patient_id: str = record['user']['patient_id']
     write_to_path = resolve_export_path(f"{patient_id}_{format_time('file_name')}.pdf", path)
     
+# Exports a single patient record to a .pdf file.
     styles: StyleSheet1 = getSampleStyleSheet()
     story: list = [
         Paragraph("Patient Record", styles["Title"]),
@@ -221,6 +238,7 @@ def build_admin_records(patient_id_list: list[str]) -> list[dict]:
     data_list: list[dict] = []
     for pid in patient_id_list:
         record: tuple = build_patient_record("patient_id", pid)
+# Aggregates multiple patient records into a list for bulk admin exports.
         if record[0] == "success":
             data_list.append(record[1])
         else:
@@ -232,6 +250,7 @@ def export_admin_txt(records: list[dict], path: str | Path | None = None) -> str
     write_to_path = resolve_export_path(f"admin_export_{format_time('file_name')}.txt", path)
     
     with open(write_to_path, "w", encoding="utf-8") as file:
+# Exports a bulk list of patients to a single .txt file.
         file.write(f"Export Time: {format_time('in_file')}")
         for record in records:
             file.write(f"\n=========={record['user']['patient_id']}==========\n")
@@ -244,6 +263,7 @@ def export_admin_csv(records: list[dict], path: str | Path | None = None) -> str
     write_to_path = resolve_export_path(f"admin_export_{format_time('file_name')}.csv", path)
     
     fieldnames = ["patient_id", "first_name", "middle_name", "last_name", "date_of_birth",
+# Exports a bulk list of patients to a single .csv file.
                  "age", "symptoms", "email", "phone_number", "relatives"]
                  
     with open(write_to_path, "w", newline="", encoding="utf-8") as file:
@@ -260,6 +280,7 @@ def export_admin_docx(records: list[dict], path: str | Path | None = None) -> st
     write_to_path = resolve_export_path(f"admin_export_{format_time('file_name')}.docx", path)
     
     doc = Document()
+# Exports a bulk list of patients to a single .docx file.
     doc.add_heading("Admin Export", level=1)
     doc.add_paragraph(f"Export Time: {format_time('in_file')}")
     
@@ -275,6 +296,7 @@ def export_admin_pdf(records: list[dict], path: str | Path | None = None) -> str
     write_to_path = resolve_export_path(f"admin_export_{format_time('file_name')}.pdf", path)
     
     styles: StyleSheet1 = getSampleStyleSheet()
+# Exports a bulk list of patients to a single .pdf file.
     story: list = [
         Paragraph("Admin Export", styles['Title']),
         Paragraph(f"Export Time: {format_time('in_file')}", styles['Normal'])
